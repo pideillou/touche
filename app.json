@@ -1,0 +1,54 @@
+{
+  "expo": {
+    "name": "Touché",
+    "slug": "touche-project",
+    "owner": "fr-touche-app",
+    "scheme": "touche",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "fr.pideillou.touche"
+    },
+    "android": {
+      "package": "fr.pideillou.touche",
+      "adaptiveIcon": {
+        "backgroundColor": "#D85A30",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Touché utilise ta position pendant les parties pour te placer sur la carte et la partager avec les joueurs de ta partie.",
+          "locationAlwaysAndWhenInUsePermission": "Pendant une partie, Touché continue de partager ta position avec les joueurs de ta partie quand l'écran est éteint. Le suivi s'arrête à la fin de la partie.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Touché utilise l'appareil photo pour ton selfie et pour photographier les chats."
+        }
+      ],
+      "expo-dev-client",
+      "@maplibre/maplibre-react-native"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "18c3701b-de76-4a58-b6f6-30e1ba9a3f35"
+      }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/18c3701b-de76-4a58-b6f6-30e1ba9a3f35"
+    }
+  }
+}

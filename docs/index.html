@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Touché, le jeu du chat dans les rues de Limoges</title>
+  <meta name="description" content="Touché est un jeu du chat qui se joue pour de vrai, dans les rues de Limoges : les chats chassent, les souris fuient et photographient leurs poursuivants. Installation sur Android et iPhone.">
+  <meta name="theme-color" content="#D85A30">
+  <link rel="icon" type="image/png" href="img/icone.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600&amp;family=Inter:wght@400;600&amp;display=swap">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <a class="evitement" href="#contenu">Aller au contenu</a>
+
+  <header class="entete">
+    <div class="largeur entete__ligne">
+      <a class="marque" href="./">
+        <img src="img/icone.png" alt="" width="40" height="40">
+        <span>Touché</span>
+      </a>
+      <nav aria-label="Navigation principale">
+        <ul class="menu">
+          <li><a href="#jeu">Le jeu</a></li>
+          <li><a href="#installer">Installer</a></li>
+          <li><a href="#securite">Sécurité</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="contenu">
+    <section class="accroche" aria-labelledby="titre-accroche">
+      <div class="largeur accroche__grille">
+        <div>
+          <p class="surtitre">Limoges, et bientôt Angoulême</p>
+          <h1 id="titre-accroche">Le jeu du chat, dans les vraies rues de ta ville</h1>
+          <p class="chapo">Un chat est tiré au sort. Les autres sont des souris. Le chat les voit sur la carte, elles ne le voient pas. Chaque souris touchée devient chat, jusqu'à ce qu'il n'en reste plus.</p>
+          <p class="boutons">
+            <a class="bouton bouton--plein" href="#android">Installer sur Android</a>
+            <a class="bouton bouton--contour" href="#iphone">Installer sur iPhone</a>
+          </p>
+        </div>
+        <img class="accroche__logo" src="img/logo-chat.png" alt="Logo de Touché : une tête de chat noire en forme d'épingle de carte, aux yeux orange" width="600" height="600">
+      </div>
+    </section>
+
+    <section class="bloc" id="jeu" aria-labelledby="titre-jeu">
+      <div class="largeur">
+        <h2 id="titre-jeu">Le jeu</h2>
+        <ul class="cartes">
+          <li class="carte">
+            <h3>Chat contaminé</h3>
+            <p>Le chat touche une souris pour de vrai, la souris confirme dans l'appli et devient chat à son tour. En cas de désaccord, l'hôte de la partie tranche.</p>
+          </li>
+          <li class="carte">
+            <h3>Les souris ripostent</h3>
+            <p>Une souris peut photographier un chat. Si le chat reconnaît que c'est bien lui, la photo compte. À la fin, la souris encore en vie avec le plus de photos gagne.</p>
+          </li>
+          <li class="carte">
+            <h3>Une vraie carte</h3>
+            <p>On joue dans une zone de la ville : le centre-ville, le quartier de la gare ou le campus de l'IUT. Sortir du cercle trop longtemps transforme une souris en chat.</p>
+          </li>
+        </ul>
+
+        <h3 class="sous-titre">Comment se passe une partie</h3>
+        <ol class="etapes">
+          <li>L'hôte crée la partie, choisit la zone et la durée, puis partage le code à 4 caractères.</li>
+          <li>Chacun rejoint avec le code et accepte les règles de sécurité.</li>
+          <li>Le chat est tiré au sort (deux chats au-delà de 10 joueurs), puis un compte à rebours de 5 secondes lance la partie.</li>
+          <li>Le chat voit la position exacte des souris toutes les 20 secondes. Les souris, elles, ne voient jamais les chats.</li>
+          <li>La partie s'arrête à la fin du chrono ou quand il ne reste plus de souris. Le classement s'affiche, et chacun gagne de l'expérience.</li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="bloc bloc--fonce" id="installer" aria-labelledby="titre-installer">
+      <div class="largeur">
+        <h2 id="titre-installer">Installer Touché</h2>
+        <p class="chapo">L'appli est gratuite et n'est pas encore sur les stores. Android et iPhone peuvent jouer ensemble dans la même partie.</p>
+
+        <div class="installation">
+          <article class="systeme" id="android" aria-labelledby="titre-android">
+            <h3 id="titre-android">Android</h3>
+            <p class="atout">Ton téléphone peut se mettre en veille pendant la partie.</p>
+            <ol>
+              <li>Télécharge l'appli avec le bouton ci-dessous.</li>
+              <li>Ouvre le fichier <code>touche.apk</code>. Android demande d'autoriser l'installation depuis ton navigateur : accepte.</li>
+              <li>Ouvre Touché. À la première partie, autorise la position puis choisis « Toujours autoriser » dans les réglages qui s'ouvrent.</li>
+            </ol>
+            <p>
+              <a class="bouton bouton--plein" id="lien-apk" href="#android" hidden>Télécharger l'APK</a>
+              <span class="indisponible" id="apk-absent">Le téléchargement arrive bientôt.</span>
+            </p>
+            <p class="note">Pour une nouvelle version, télécharge à nouveau l'APK : il s'installe par-dessus l'ancien.</p>
+          </article>
+
+          <article class="systeme" id="iphone" aria-labelledby="titre-iphone">
+            <h3 id="titre-iphone">iPhone</h3>
+            <p class="atout">Touché passe par l'appli gratuite Expo Go. Garde l'écran allumé pendant la partie : sur iPhone, la position s'arrête quand il se verrouille.</p>
+            <ol>
+              <li>Crée un compte gratuit sur <a href="https://expo.dev/signup">expo.dev</a>.</li>
+              <li>Envoie l'adresse e-mail de ce compte à l'organisateur<span class="contact-zone" hidden> (<span class="contact"></span>)</span> pour recevoir une invitation, puis accepte-la.</li>
+              <li>Installe <a href="https://apps.apple.com/app/expo-go/id982107779">Expo Go</a> depuis l'App Store et connecte-toi avec ton compte Expo.</li>
+              <li>Ouvre le lien de Touché depuis ton iPhone.</li>
+            </ol>
+            <p>
+              <a class="bouton bouton--plein" id="lien-expo-go" href="#iphone" hidden>Ouvrir Touché dans Expo Go</a>
+              <span class="indisponible" id="expo-go-absent">Le lien arrive bientôt.</span>
+            </p>
+            <p class="note">Cette méthode marche aussi sur Android, si tu préfères Expo Go à l'APK.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="bloc" id="securite" aria-labelledby="titre-securite">
+      <div class="largeur">
+        <h2 id="titre-securite">On court, mais prudemment</h2>
+        <p class="chapo">Tous les joueurs acceptent ces règles avant chaque partie.</p>
+        <ol class="regles">
+          <li>Reste sur les trottoirs et les rues piétonnes.</li>
+          <li>Ne traverse jamais une rue en courant.</li>
+          <li>Un simple toucher suffit, aucun geste brusque.</li>
+          <li>Respecte les passants et ne photographie que les joueurs.</li>
+        </ol>
+        <h3 class="sous-titre">Tes données</h3>
+        <p>Ta position n'est partagée qu'avec les joueurs de ta partie, et seulement pendant celle-ci. Les positions et les photos sont effacées dès la fin de la partie. Tu peux jouer en invité, sans compte.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="pied">
+    <div class="largeur">
+      <p>Touché, projet étudiant non commercial. Fonds de carte : <a href="https://openfreemap.org">OpenFreeMap</a>, données © <a href="https://www.openstreetmap.org/copyright">contributeurs OpenStreetMap</a>.</p>
+    </div>
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+node_modules/
+.expo/
+dist/
+web-build/
+ios/
+android/
+*.log
+.DS_Store
+# Secrets : ne jamais pousser le vrai fichier .env sur GitHub
+.env
+.env*.local

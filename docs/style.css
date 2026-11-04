@@ -1,0 +1,329 @@
+/* Touché : couleurs et polices de la maquette Figma */
+:root {
+  --encre: #2c2c2a;
+  --craie: #f1efe8;
+  --corail: #d85a30;
+  --corail-fonce: #993c1d;
+  --corail-clair: #faece7;
+  --vert: #1d9e75;
+  --nuit: #444441;
+  --gris: #5f5e5a;
+  --gris-clair: #d3d1c7;
+  --blanc: #ffffff;
+  --rayon: 18px;
+  --titre: "Fredoka", "Trebuchet MS", sans-serif;
+  --texte: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--craie);
+  color: var(--encre);
+  font-family: var(--texte);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+a {
+  color: var(--corail-fonce);
+}
+
+a:focus-visible,
+.bouton:focus-visible {
+  outline: 3px solid var(--vert);
+  outline-offset: 3px;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--titre);
+  font-weight: 600;
+  line-height: 1.15;
+  margin: 0 0 0.75rem;
+}
+
+h1 {
+  font-size: clamp(2rem, 6vw, 3.25rem);
+}
+
+h2 {
+  font-size: clamp(1.6rem, 4vw, 2.25rem);
+}
+
+h3 {
+  font-size: 1.3rem;
+}
+
+p,
+ol,
+ul {
+  margin: 0 0 1rem;
+}
+
+code {
+  background: var(--corail-clair);
+  border-radius: 6px;
+  padding: 0.1em 0.35em;
+}
+
+.largeur {
+  width: min(100% - 2rem, 60rem);
+  margin-inline: auto;
+}
+
+/* Lien d'évitement, visible seulement au clavier */
+.evitement {
+  position: absolute;
+  left: 1rem;
+  top: -4rem;
+  background: var(--encre);
+  color: var(--craie);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  z-index: 10;
+}
+
+.evitement:focus {
+  top: 1rem;
+}
+
+/* En-tête */
+.entete {
+  background: var(--craie);
+  border-bottom: 1px solid var(--gris-clair);
+}
+
+.entete__ligne {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding-block: 0.75rem;
+}
+
+.marque {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--encre);
+  font-family: var(--titre);
+  font-size: 1.6rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.marque img {
+  border-radius: 10px;
+}
+
+.menu {
+  display: flex;
+  gap: 1.25rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.menu a {
+  color: var(--encre);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.menu a:hover {
+  color: var(--corail-fonce);
+  text-decoration: underline;
+}
+
+/* Accroche */
+.accroche {
+  padding-block: 3rem;
+}
+
+.accroche__grille {
+  display: grid;
+  gap: 2rem;
+  align-items: center;
+}
+
+.accroche__logo {
+  justify-self: center;
+  width: min(60vw, 18rem);
+}
+
+.surtitre {
+  color: var(--corail-fonce);
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.chapo {
+  font-size: 1.1rem;
+  max-width: 40rem;
+}
+
+.boutons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+/* Boutons : texte grand et gras pour garder un contraste suffisant sur le corail */
+.bouton {
+  display: inline-block;
+  border-radius: var(--rayon);
+  padding: 0.8rem 1.4rem;
+  font-family: var(--titre);
+  font-size: 1.2rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.bouton--plein {
+  background: var(--corail);
+  color: var(--blanc);
+}
+
+.bouton--plein:hover {
+  background: var(--corail-fonce);
+}
+
+.bouton--contour {
+  border: 2px solid var(--encre);
+  color: var(--encre);
+}
+
+.bouton--contour:hover {
+  background: var(--encre);
+  color: var(--craie);
+}
+
+/* Sections */
+.bloc {
+  padding-block: 3rem;
+}
+
+.bloc--fonce {
+  background: var(--encre);
+  color: var(--craie);
+}
+
+.bloc--fonce a:not(.bouton) {
+  color: #f5c4b3;
+}
+
+.sous-titre {
+  margin-top: 2rem;
+}
+
+.cartes {
+  display: grid;
+  gap: 1rem;
+  list-style: none;
+  padding: 0;
+}
+
+.carte {
+  background: var(--blanc);
+  border-radius: var(--rayon);
+  padding: 1.25rem;
+}
+
+.carte p {
+  margin: 0;
+}
+
+.etapes li,
+.regles li {
+  margin-bottom: 0.5rem;
+}
+
+.regles {
+  font-size: 1.1rem;
+}
+
+/* Installation */
+.installation {
+  display: grid;
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.systeme {
+  background: var(--nuit);
+  border-radius: var(--rayon);
+  padding: 1.5rem;
+}
+
+.systeme code {
+  background: var(--encre);
+  color: var(--craie);
+}
+
+.atout {
+  font-weight: 600;
+}
+
+.indisponible {
+  display: inline-block;
+  border: 2px dashed var(--gris-clair);
+  border-radius: var(--rayon);
+  padding: 0.7rem 1.2rem;
+}
+
+.note {
+  color: var(--gris-clair);
+  font-size: 0.95rem;
+  margin-bottom: 0;
+}
+
+/* Pied de page */
+.pied {
+  border-top: 1px solid var(--gris-clair);
+  color: var(--gris);
+  font-size: 0.9rem;
+  padding-block: 1.5rem;
+}
+
+.pied p {
+  margin: 0;
+}
+
+/* Écrans plus larges */
+@media (min-width: 48rem) {
+  .accroche__grille {
+    grid-template-columns: 3fr 2fr;
+  }
+
+  .cartes {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .installation {
+    grid-template-columns: 1fr 1fr;
+  }
+}
