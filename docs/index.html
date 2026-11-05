@@ -84,34 +84,61 @@
         <div class="installation">
           <article class="systeme" id="android" aria-labelledby="titre-android">
             <h3 id="titre-android">Android</h3>
-            <p class="atout">Ton téléphone peut se mettre en veille pendant la partie.</p>
-            <ol>
-              <li>Télécharge l'appli avec le bouton ci-dessous.</li>
-              <li>Ouvre le fichier <code>touche.apk</code>. Android demande d'autoriser l'installation depuis ton navigateur : accepte.</li>
-              <li>Ouvre Touché. À la première partie, autorise la position puis choisis « Toujours autoriser » dans les réglages qui s'ouvrent.</li>
+            <p class="atout">Tu peux verrouiller ton téléphone pendant la partie, ta position continue d'être envoyée.</p>
+            <ol class="guide">
+              <li>Depuis ton téléphone, appuie sur le bouton ci-dessous pour télécharger <code>touche.apk</code>.</li>
+              <li>Ouvre le fichier, depuis la notification de téléchargement ou l'appli Fichiers, dossier Téléchargements.</li>
+              <li>Si Android refuse d'installer une appli inconnue, appuie sur Paramètres, active « Autoriser cette source » pour ton navigateur, puis reviens en arrière.</li>
+              <li>Si Play Protect affiche une alerte, appuie sur « Plus de détails » puis « Installer quand même ». L'alerte apparaît pour toute appli qui ne vient pas du Play Store.</li>
+              <li>Ouvre Touché. À ta première partie, autorise la position, puis choisis « Toujours autoriser » dans les réglages qui s'ouvrent. Autorise aussi l'appareil photo pour photographier les chats.</li>
             </ol>
             <p>
               <a class="bouton bouton--plein" id="lien-apk" href="#android" hidden>Télécharger l'APK</a>
               <span class="indisponible" id="apk-absent">Le téléchargement arrive bientôt.</span>
             </p>
-            <p class="note">Pour une nouvelle version, télécharge à nouveau l'APK : il s'installe par-dessus l'ancien.</p>
+            <p class="note">Nouvelle version : télécharge à nouveau l'APK, il s'installe par-dessus l'ancien sans effacer ton compte.</p>
           </article>
 
           <article class="systeme" id="iphone" aria-labelledby="titre-iphone">
             <h3 id="titre-iphone">iPhone</h3>
-            <p class="atout">Touché passe par l'appli gratuite Expo Go. Garde l'écran allumé pendant la partie : sur iPhone, la position s'arrête quand il se verrouille.</p>
-            <ol>
+            <p class="atout">Touché s'ouvre dans l'appli gratuite Expo Go. Garde l'écran allumé pendant la partie : sur iPhone, la position s'arrête quand il se verrouille.</p>
+            <ol class="guide">
               <li>Crée un compte gratuit sur <a href="https://expo.dev/signup">expo.dev</a>.</li>
-              <li>Envoie l'adresse e-mail de ce compte à l'organisateur<span class="contact-zone" hidden> (<button type="button" class="contact-afficher">afficher son adresse</button><a class="contact" hidden></a>)</span> pour recevoir une invitation, puis accepte-la.</li>
-              <li>Installe <a href="https://apps.apple.com/app/expo-go/id982107779">Expo Go</a> depuis l'App Store et connecte-toi avec ton compte Expo.</li>
-              <li>Ouvre le lien de Touché depuis ton iPhone.</li>
+              <li>Envoie l'adresse e-mail de ce compte à l'organisateur<span class="contact-zone" hidden> (<button type="button" class="contact-afficher">afficher son adresse</button><a class="contact" hidden></a>)</span>. Tu reçois ensuite un e-mail d'invitation d'Expo : accepte-le. Sans cette étape, Expo Go refuse d'ouvrir Touché.</li>
+              <li>Installe <a href="https://apps.apple.com/app/expo-go/id982107779">Expo Go</a> depuis l'App Store, ouvre-le et connecte-toi avec ton compte Expo.</li>
+              <li>Depuis l'iPhone, appuie sur le bouton ci-dessous. Si tu lis cette page sur un ordinateur, scanne plutôt le QR code avec l'appareil photo de l'iPhone.</li>
+              <li>Autorise la position et l'appareil photo quand Touché les demande.</li>
             </ol>
             <p>
               <a class="bouton bouton--plein" id="lien-expo-go" href="#iphone" hidden>Ouvrir Touché dans Expo Go</a>
               <span class="indisponible" id="expo-go-absent">Le lien arrive bientôt.</span>
             </p>
-            <p class="note">Cette méthode marche aussi sur Android, si tu préfères Expo Go à l'APK.</p>
+            <figure class="qr">
+              <img src="https://qr.expo.dev/eas-update?projectId=18c3701b-de76-4a58-b6f6-30e1ba9a3f35&amp;runtimeVersion=exposdk%3A58.0.0&amp;channel=amis" alt="QR code qui ouvre Touché dans Expo Go" width="200" height="200">
+              <figcaption>À scanner avec l'appareil photo de l'iPhone</figcaption>
+            </figure>
+            <p class="note">Nouvelle version : rien à faire, Expo Go charge la dernière version à chaque ouverture. Cette méthode marche aussi sur Android.</p>
           </article>
+        </div>
+
+        <h3 class="sous-titre">Ça ne marche pas ?</h3>
+        <div class="aide">
+          <details>
+            <summary>Expo Go affiche une erreur ou demande de se connecter</summary>
+            <p>Vérifie que tu es connecté dans Expo Go avec le compte que tu as donné à l'organisateur, et que tu as bien accepté l'invitation reçue par e-mail.</p>
+          </details>
+          <details>
+            <summary>Ma position ne se met plus à jour sur Android</summary>
+            <p>Dans Paramètres, ouvre Applis, puis Touché. Mets la position sur « Toujours autoriser » et la batterie sur « Sans restriction ». Certains téléphones, notamment Samsung et Xiaomi, coupent sinon les applis en arrière-plan.</p>
+          </details>
+          <details>
+            <summary>Le fichier APK ne s'ouvre pas</summary>
+            <p>Télécharge-le avec Chrome, puis ouvre-le depuis l'appli Fichiers. S'il a été renommé en <code>touche.apk.zip</code> ou <code>touche(1).apk</code>, supprime-le et télécharge-le à nouveau.</p>
+          </details>
+          <details>
+            <summary>Je n'ai pas reçu l'e-mail d'invitation</summary>
+            <p>Regarde dans les spams, puis recontacte l'organisateur pour qu'il vérifie l'adresse saisie.</p>
+          </details>
         </div>
       </div>
     </section>
