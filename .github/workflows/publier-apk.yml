@@ -1,0 +1,43 @@
+# Publie un APK construit par EAS dans une release GitHub, sous le nom touche.apk.
+# Lancement : onglet Actions > Publier l'APK > Run workflow, avec le lien de l'APK affiché sur expo.dev.
+name: Publier l'APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      lien_apk:
+        description: "Lien de l'APK sur expo.dev (https://expo.dev/artifacts/eas/....apk)"
+        required: true
+      version:
+        description: "Numéro de version, par exemple v1.0.0"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  publier:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Télécharger l'APK depuis EAS
+        env:
+          LIEN_APK: ${{ inputs.lien_apk }}
+        run: |
+          case "$LIEN_APK" in
+            https://expo.dev/artifacts/eas/*.apk) ;;
+            *) echo "Le lien doit venir de https://expo.dev/artifacts/eas/ et finir par .apk"; exit 1 ;;
+          esac
+          curl -fsSL -o touche.apk "$LIEN_APK"
+          unzip -tq touche.apk
+          ls -lh touche.apk
+
+      - name: Créer la release avec touche.apk
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          gh release create "$VERSION" touche.apk \
+            --repo "$GITHUB_REPOSITORY" \
+            --target main \
+            --title "Touché ${VERSION#v}" \
+            --notes "Version Android de Touché, mode chat contaminé à Limoges. Télécharge touche.apk sur ton téléphone Android pour l'installer."
