@@ -23,11 +23,33 @@
   brancher('lien-apk', 'apk-absent', reglages.lienApk || lienApkParDefaut());
   brancher('lien-expo-go', 'expo-go-absent', reglages.lienExpoGo);
 
-  if (reglages.contact) {
+  // L'adresse n'apparaît ni dans le HTML ni en clair dans le code :
+  // elle est reconstituée au clic, ce que les robots de spam ne font pas.
+  function decoderContact(code) {
+    try {
+      return window.atob(code).split('').reverse().join('');
+    } catch (e) {
+      return '';
+    }
+  }
+
+  if (reglages.contactCode) {
     var zones = document.querySelectorAll('.contact-zone');
     for (var i = 0; i < zones.length; i += 1) {
-      zones[i].querySelector('.contact').textContent = reglages.contact;
-      zones[i].hidden = false;
+      (function (zone) {
+        var bouton = zone.querySelector('.contact-afficher');
+        var lien = zone.querySelector('.contact');
+        bouton.addEventListener('click', function () {
+          var adresse = decoderContact(reglages.contactCode);
+          if (!adresse) return;
+          lien.textContent = adresse;
+          lien.href = 'mailto:' + adresse + '?subject=' + encodeURIComponent('Invitation Touché');
+          lien.hidden = false;
+          bouton.hidden = true;
+          lien.focus();
+        });
+        zone.hidden = false;
+      })(zones[i]);
     }
   }
 })();

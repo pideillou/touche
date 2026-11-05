@@ -7,10 +7,10 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "build:android": "eas build --profile development --platform android",
-    "build:ios": "eas build --profile development --platform ios",
-    "partager": "eas update --channel amis --message \"Version pour jouer entre amis\"",
-    "apk": "eas build --profile preview --platform android",
+    "build:android": "npx eas-cli@latest build --profile development --platform android",
+    "build:ios": "npx eas-cli@latest build --profile development --platform ios",
+    "partager": "npx eas-cli@latest update --channel amis --environment preview --message \"Version pour jouer entre amis\"",
+    "apk": "npx eas-cli@latest build --profile preview --platform android",
     "variables:eas": "node scripts/variables-eas.js"
   },
   "dependencies": {

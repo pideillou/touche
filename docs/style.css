@@ -49,7 +49,19 @@ a {
   color: var(--corail-fonce);
 }
 
+/* Bouton qui révèle l'adresse e-mail, présenté comme un lien */
+.contact-afficher {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--corail-fonce);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 a:focus-visible,
+.contact-afficher:focus-visible,
 .bouton:focus-visible {
   outline: 3px solid var(--vert);
   outline-offset: 3px;
