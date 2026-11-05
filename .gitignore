@@ -9,3 +9,6 @@ android/
 # Secrets : ne jamais pousser le vrai fichier .env sur GitHub
 .env
 .env*.local
+
+# Schéma SQL gardé en local uniquement
+supabase/
