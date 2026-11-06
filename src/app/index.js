@@ -42,8 +42,8 @@ export default function Accueil() {
       )}
 
       <Carte style={styles.ligne}>
-        <Texte>Limoges</Texte>
-        <Petit>Ta ville</Petit>
+        <Texte>Limoges · Châteauroux</Texte>
+        <Petit>Ou autour de toi</Petit>
       </Carte>
       <View style={[styles.ligne, { paddingHorizontal: 6 }]}>
         <Petit>Angoulême</Petit>
