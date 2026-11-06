@@ -1,3 +1,4 @@
+/* eslint-env browser */
 // Carte de jeu de la version web (PWA) : MapLibre GL JS avec les cartes gratuites d'OpenFreeMap,
 // le même style que l'APK. La caméra ne peut ni sortir de la zone ni dézoomer au-delà du quartier.
 import maplibregl from 'maplibre-gl';
@@ -16,7 +17,7 @@ import {
   joueursEnGeoJson,
   rectangle,
 } from './styleCarte';
-import { couleurs } from '@/theme';
+import { palette as couleurs } from '@/theme';
 
 // Point bleu « c'est moi », mis à jour par le GPS du navigateur
 function creerPointMoi() {
@@ -78,7 +79,7 @@ export default function CarteJeu({ centre, rayon, points = [] }) {
       map.remove();
       carte.current = null;
     };
-  }, [centre.latitude, centre.longitude, rayon]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [centre.latitude, centre.longitude, rayon]);
 
   // Les positions des souris changent toutes les 20 secondes
   useEffect(() => {

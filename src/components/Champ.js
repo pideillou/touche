@@ -7,7 +7,7 @@ export default function Champ({ libelle, style, ...props }) {
   return (
     <View style={[{ gap: 6 }, style]}>
       {libelle ? <Petit>{libelle}</Petit> : null}
-      <TextInput placeholderTextColor={couleurs.grisClair} style={styles.champ} {...props} />
+      <TextInput placeholderTextColor={couleurs.gris} style={styles.champ} {...props} />
     </View>
   );
 }

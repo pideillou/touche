@@ -10,7 +10,7 @@ import { Petit, Texte, Titre } from '@/components/Texte';
 import { chrono } from '@/lib/geo';
 import { chargerPartie, envoyerPhoto, listerPhotos } from '@/lib/parties';
 import { useSession } from '@/lib/session';
-import { couleurs, polices } from '@/theme';
+import { palette as couleurs, polices } from '@/theme';
 
 const ATTENTE_MEME_CHAT_S = 120; // une photo par chat toutes les 2 minutes
 

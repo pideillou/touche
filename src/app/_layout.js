@@ -4,13 +4,20 @@ import { Inter_400Regular } from '@expo-google-fonts/inter/400Regular';
 import { Inter_600SemiBold } from '@expo-google-fonts/inter/600SemiBold';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
+import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
+import { enregistrerServiceWorker } from '@/lib/notifications';
 import { SessionProvider } from '@/lib/session';
 import '@/lib/suivi'; // déclare la tâche de suivi de fond dès le lancement
 import { couleurs } from '@/theme';
 
 export default function Racine() {
   const [policesPretes] = useFonts({ Fredoka_600SemiBold, Inter_400Regular, Inter_600SemiBold });
+
+  // Version web : le service worker reçoit les notifications
+  useEffect(() => {
+    enregistrerServiceWorker();
+  }, []);
 
   if (!policesPretes) {
     return (

@@ -9,7 +9,7 @@ import Ecran from '@/components/Ecran';
 import { Petit, Texte, Titre } from '@/components/Texte';
 import { envoyerSelfie } from '@/lib/compte';
 import { useSession } from '@/lib/session';
-import { couleurs } from '@/theme';
+import { palette as couleurs } from '@/theme';
 
 export default function Selfie() {
   const { session } = useSession();

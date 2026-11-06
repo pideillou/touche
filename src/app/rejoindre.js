@@ -35,7 +35,7 @@ export default function Rejoindre() {
   }
 
   return (
-    <Ecran>
+    <Ecran retour>
       <Titre>Rejoindre une partie</Titre>
       <Champ
         libelle="Code de la partie"
@@ -53,7 +53,6 @@ export default function Rejoindre() {
         chargement={chargement}
         desactive={code.trim().length !== 4 || pseudo.trim().length < 2}
       />
-      <Bouton titre="Retour" variante="contour" onPress={() => router.back()} />
     </Ecran>
   );
 }

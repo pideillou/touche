@@ -1,6 +1,4 @@
-// Savoir où tourne l'appli : Expo Go, version web (PWA) ou version installable (APK, build EAS)
-import Constants, { ExecutionEnvironment } from 'expo-constants';
+// Savoir où tourne l'appli : version web (PWA, iPhone) ou appli Android installée
 import { Platform } from 'react-native';
 
-export const dansExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 export const dansNavigateur = Platform.OS === 'web';

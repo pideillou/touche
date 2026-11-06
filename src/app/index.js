@@ -1,19 +1,42 @@
+/* eslint-env browser */
 // Écran 01 : accueil
-import { router } from 'expo-router';
-import { useState } from 'react';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Image, Platform, Pressable, StyleSheet, View } from 'react-native';
 import Bouton from '@/components/Bouton';
 import Carte from '@/components/Carte';
 import Champ from '@/components/Champ';
+import Dialogue from '@/components/Dialogue';
 import Ecran from '@/components/Ecran';
 import { Petit, Texte, Titre } from '@/components/Texte';
+import { invitationDejaVue, marquerInvitationVue } from '@/lib/preferences';
 import { useSession } from '@/lib/session';
 import { supabaseConfigure } from '@/lib/supabase';
 import { couleurs } from '@/theme';
 
+// Version web sur iPhone, ouverte dans Safari et pas depuis l'écran d'accueil
+function iphoneDansSafari() {
+  if (Platform.OS !== 'web' || typeof navigator === 'undefined') return false;
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  const installee = window.navigator.standalone === true || window.matchMedia?.('(display-mode: standalone)').matches;
+  return ios && !installee;
+}
+
 export default function Accueil() {
   const { pret, erreur } = useSession();
+  const { info } = useLocalSearchParams();
   const [code, setCode] = useState('');
+  const [invitation, setInvitation] = useState(false);
+
+  useEffect(() => {
+    if (!iphoneDansSafari()) return;
+    invitationDejaVue().then((vue) => setInvitation(!vue));
+  }, []);
+
+  function fermerInvitation() {
+    setInvitation(false);
+    marquerInvitationVue();
+  }
   const codePret = code.trim().length === 4;
   const actif = pret && supabaseConfigure && !erreur;
 
@@ -27,6 +50,12 @@ export default function Accueil() {
           </Texte>
         </Pressable>
       </View>
+
+      {info ? (
+        <Carte accent={couleurs.ambre}>
+          <Texte>{info}</Texte>
+        </Carte>
+      ) : null}
 
       {!supabaseConfigure && (
         <Carte accent={couleurs.corail}>
@@ -75,6 +104,16 @@ export default function Accueil() {
           onPress={() => router.push({ pathname: '/rejoindre', params: { code: code.trim() } })}
         />
       </View>
+      <Dialogue visible={invitation}>
+        <Titre taille={22}>Installe Touché</Titre>
+        <Petit>Plein écran et icône sur ton accueil, sans App Store.</Petit>
+        <Texte>1. Touche le bouton Partager, en bas de Safari.</Texte>
+        <Texte>2. Choisis « Sur l'écran d'accueil ».</Texte>
+        <Texte>3. Ouvre Touché depuis sa nouvelle icône.</Texte>
+        <Bouton titre="J'ai compris" onPress={fermerInvitation} />
+        <Bouton titre="Plus tard" variante="contour" onPress={() => setInvitation(false)} />
+      </Dialogue>
+
       <Pressable onPress={() => router.push('/legal')} accessibilityRole="link" style={styles.legal}>
         <Petit centre couleur={couleurs.gris}>
           Mentions légales et crédits · Cartes © contributeurs OpenStreetMap

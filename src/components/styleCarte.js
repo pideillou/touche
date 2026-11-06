@@ -1,5 +1,5 @@
 // Style de carte et formes partagés par la carte de l'APK (MapLibre natif) et celle de la version web (MapLibre GL JS)
-import { couleurs } from '@/theme';
+import { palette as couleurs } from '@/theme';
 
 const OPENFREEMAP = 'https://tiles.openfreemap.org';
 const PETITES_RUES = ['minor', 'service', 'track', 'path', 'pedestrian'];
@@ -90,8 +90,9 @@ export function rectangle(centre, distance) {
 export const PEINTURE_ZONE_FOND = { 'fill-color': couleurs.corail, 'fill-opacity': 0.08 };
 export const PEINTURE_ZONE_BORD = { 'line-color': couleurs.corail, 'line-width': 3 };
 export const PEINTURE_JOUEURS = { 'circle-radius': 7, 'circle-color': couleurs.vertVif, 'circle-stroke-color': couleurs.craie, 'circle-stroke-width': 2 };
-export const DISPOSITION_NOMS = { 'text-field': ['get', 'nom'], 'text-font': ['Noto Sans Regular'], 'text-size': 12, 'text-offset': [0, 1.4] };
-export const PEINTURE_NOMS = { 'text-color': couleurs.craie, 'text-halo-color': couleurs.encre, 'text-halo-width': 1 };
+// Le pseudo s'affiche au-dessus du point, pour que le doigt ne le cache pas ; un seul nom si deux points se chevauchent
+export const DISPOSITION_NOMS = { 'text-field': ['get', 'nom'], 'text-font': ['Noto Sans Regular'], 'text-size': 13, 'text-anchor': 'bottom', 'text-offset': [0, -0.9] };
+export const PEINTURE_NOMS = { 'text-color': couleurs.craie, 'text-halo-color': couleurs.encre, 'text-halo-width': 2 };
 
 // Les joueurs visibles, au format GeoJSON
 export function joueursEnGeoJson(points) {

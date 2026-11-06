@@ -1,17 +1,18 @@
 // Toutes les requêtes liées aux parties. Les écrans n'appellent que ces fonctions.
+import { traduireErreur } from './erreurs';
 import { supabase } from './supabase';
 
 // Appelle une fonction SQL (voir supabase/schema.sql) et renvoie son résultat
 async function action(nom, parametres) {
   const { data, error } = await supabase.rpc(nom, parametres);
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(traduireErreur(error.message));
   return data;
 }
 
 // Zones prédéfinies de toutes les villes (les zones « autour de l'hôte » sont exclues)
 export async function listerZones() {
   const { data, error } = await supabase.from('zones').select('*').eq('perso', false).order('ville').order('ordre');
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(traduireErreur(error.message));
   return data;
 }
 
@@ -29,6 +30,10 @@ export const creerPartie = ({ zoneId, position, pseudo, rayon, duree, delai, inv
 
 export const rejoindrePartie = (code, pseudo) => action('rejoindre_partie', { p_code: code, p_pseudo: pseudo });
 export const accepterRegles = (partieId) => action('accepter_regles', { p_partie: partieId });
+export const quitterPartie = (partieId) => action('quitter_partie', { p_partie: partieId });
+export const exclureJoueur = (partieId, joueurId) => action('exclure_joueur', { p_partie: partieId, p_joueur: joueurId });
+export const terminerPartie = (partieId) => action('terminer_partie', { p_partie: partieId });
+export const declarerCapture = (partieId, chatId) => action('declarer_capture', { p_partie: partieId, p_chat: chatId });
 export const lancerPartie = (partieId) => action('lancer_partie', { p_partie: partieId });
 
 // Charge une partie (avec sa zone) et la liste de ses joueurs
@@ -40,7 +45,7 @@ export async function chargerPartie(code) {
     .single();
   if (error) throw new Error('Partie introuvable.');
   const reponse = await supabase.from('joueurs').select('*').eq('partie_id', partie.id).order('rejoint_le');
-  if (reponse.error) throw new Error(reponse.error.message);
+  if (reponse.error) throw new Error(traduireErreur(reponse.error.message));
   return { partie, joueurs: reponse.data };
 }
 
@@ -65,13 +70,13 @@ export async function envoyerPosition(partieId, joueurId, coords) {
     precision_m: coords.accuracy,
     maj_le: new Date().toISOString(),
   });
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(traduireErreur(error.message));
 }
 
 // Les règles de la base font le tri : un chat reçoit les souris, une souris ne reçoit que sa position
 export async function lirePositions(partieId) {
   const { data, error } = await supabase.from('positions').select('*').eq('partie_id', partieId);
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(traduireErreur(error.message));
   return data;
 }
 
@@ -79,7 +84,7 @@ export async function lirePositions(partieId) {
 
 export async function listerCaptures(partieId) {
   const { data, error } = await supabase.from('captures').select('*').eq('partie_id', partieId).order('cree_le');
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(traduireErreur(error.message));
   return data;
 }
 
@@ -103,7 +108,7 @@ export function base64VersOctets(base64) {
 
 export async function listerPhotos(partieId) {
   const { data, error } = await supabase.from('photos').select('*').eq('partie_id', partieId).order('cree_le');
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(traduireErreur(error.message));
   return data;
 }
 
@@ -111,14 +116,14 @@ export async function listerPhotos(partieId) {
 export async function envoyerPhoto(partieId, chatId, base64) {
   const chemin = `${partieId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
   const { error } = await supabase.storage.from('photos').upload(chemin, base64VersOctets(base64), { contentType: 'image/jpeg' });
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(traduireErreur(error.message));
   return action('envoyer_photo', { p_partie: partieId, p_chat: chatId, p_chemin: chemin });
 }
 
 // Le stockage est privé : on obtient un lien valable 10 minutes
 export async function lienPhoto(chemin) {
   const { data, error } = await supabase.storage.from('photos').createSignedUrl(chemin, 600);
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(traduireErreur(error.message));
   return data.signedUrl;
 }
 
@@ -129,8 +134,8 @@ export const arbitrerPhoto = (photoId, valide) => action('arbitrer_photo', { p_p
 // En fin de partie, les joueurs effacent toutes les photos de la partie
 export async function supprimerPhotosPartie(partieId) {
   const { data, error } = await supabase.storage.from('photos').list(partieId, { limit: 1000 });
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(traduireErreur(error.message));
   if (data.length === 0) return;
   const reponse = await supabase.storage.from('photos').remove(data.map((fichier) => `${partieId}/${fichier.name}`));
-  if (reponse.error) throw new Error(reponse.error.message);
+  if (reponse.error) throw new Error(traduireErreur(reponse.error.message));
 }

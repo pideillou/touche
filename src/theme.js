@@ -1,5 +1,10 @@
 // Les couleurs et polices de Touché, reprises de la maquette Figma.
-export const couleurs = {
+// Deux palettes : le jour, et la nuit (thème sombre du téléphone) pour ne pas éblouir
+// pendant une partie de nuit : pas de blanc pur, corail adouci, textes beige doux.
+import { Appearance } from 'react-native';
+
+// Couleurs fixes, utilisées par les écrans de jeu qui sont toujours sombres
+export const palette = {
   encre: '#2C2C2A',
   craie: '#F1EFE8',
   corail: '#D85A30',
@@ -14,6 +19,23 @@ export const couleurs = {
   blanc: '#FFFFFF',
   saumon: '#F0997B',
 };
+
+// Le thème suit le réglage clair ou sombre du téléphone, lu au lancement de l'appli
+export const themeNuit = Appearance.getColorScheme() === 'dark';
+
+const NUIT = {
+  encre: '#E8E5DC', // texte principal
+  craie: '#1C1C1A', // fond des écrans
+  blanc: '#2C2C2A', // cartes et fenêtres
+  gris: '#B4B2A9', // texte secondaire
+  grisClair: '#444441', // bordures et sélecteurs
+  corail: '#C8613D',
+  corailClair: '#3D2A22',
+  vertClair: '#1E3A31',
+};
+
+// Couleurs des écrans clairs : elles basculent la nuit
+export const couleurs = themeNuit ? { ...palette, ...NUIT } : palette;
 
 // Noms des polices chargées dans src/app/_layout.js
 export const polices = {

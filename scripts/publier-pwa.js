@@ -37,6 +37,9 @@ const manifeste = {
 };
 fs.writeFileSync(path.join(source, 'manifest.webmanifest'), `${JSON.stringify(manifeste, null, 2)}\n`);
 
+// Service worker des notifications (web/sw.js), servi à la racine de l'appli
+fs.copyFileSync(path.join(racine, 'web', 'sw.js'), path.join(source, 'sw.js'));
+
 // 2. Page d'accueil : balises pour l'installation, en français et valides au W3C
 let html = fs.readFileSync(path.join(source, 'index.html'), 'utf8');
 html = html

@@ -3,14 +3,16 @@ import * as Haptics from 'expo-haptics';
 import { useKeepAwake } from 'expo-keep-awake';
 import * as Location from 'expo-location';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Bouton from '@/components/Bouton';
 import Carte from '@/components/Carte';
 import CarteJeu from '@/components/CarteJeu';
+import CompteARebours from '@/components/CompteARebours';
 import Dialogue from '@/components/Dialogue';
 import Ecran from '@/components/Ecran';
-import Etiquette from '@/components/Etiquette';
+import IconeRole from '@/components/IconeRole';
+import ModePoche, { IconeCadenas } from '@/components/ModePoche';
 import { Petit, Texte, Titre } from '@/components/Texte';
 import { chrono, distanceMetres } from '@/lib/geo';
 import {
@@ -18,6 +20,7 @@ import {
   arbitrerPhoto,
   chargerPartie,
   contesterPhoto,
+  declarerCapture,
   ecouterPartie,
   envoyerPosition,
   expirerCaptures,
@@ -25,19 +28,60 @@ import {
   lirePositions,
   listerCaptures,
   listerPhotos,
+  quitterPartie,
   repondreCapture,
   signalerCapture,
   sortieDeZone,
+  terminerPartie,
   validerPhoto,
   verifierFin,
 } from '@/lib/parties';
 import { useSession } from '@/lib/session';
+import { dansNavigateur } from '@/lib/environnement';
+import { jouerSon } from '@/lib/sons';
 import { arreterSuivi, demarrerSuivi, suiviDeFondDisponible } from '@/lib/suivi';
-import { couleurs } from '@/theme';
+import { couleurs as theme, palette as couleurs, polices } from '@/theme';
 
 const INTERVALLE_MS = 20000; // positions envoyées et relues toutes les 20 secondes
 const DELAI_REPONSE_S = 30; // une capture sans réponse est validée au bout de 30 secondes
 const DUREE_TRANSFORMATION_MS = 4000; // durée de l'écran « Tu deviens chat »
+const DELAI_ANNULATION_MS = 5000; // le chat peut annuler une capture pendant 5 secondes
+const ALERTE_BORD_M = 50; // la souris est prévenue à 50 m du bord de la zone
+const VERROUILLAGE_AUTO_MS = 25000; // version web : mode poche après 25 s sans toucher l'écran
+
+const REGLES_JEU = [
+  'Le chat touche une souris pour de vrai, puis le signale dans l’appli. La souris confirme ou conteste, l’hôte tranche.',
+  'Une souris touchée devient chat. La partie s’arrête au bout du chrono ou quand il ne reste plus de souris.',
+  'Les chats voient la position des souris toutes les 20 secondes. Les souris ne voient jamais les chats.',
+  'Une souris marque des points en photographiant un chat, qui valide la photo.',
+  'Sortir trop longtemps du cercle transforme une souris en chat.',
+  'Reste sur les trottoirs, ne traverse jamais en courant, respecte les passants.',
+];
+
+// Il y a combien de temps, en clair
+function ilYa(iso, maintenant) {
+  const s = Math.max(0, Math.round((maintenant - new Date(iso).getTime()) / 1000));
+  if (s < 60) return `il y a ${s} s`;
+  return `il y a ${Math.round(s / 60)} min`;
+}
+
+// Pastille avec icône : le rôle ne dépend pas que de la couleur
+function Pastille({ texte, fond, couleur, role }) {
+  return (
+    <View style={[styles.pastille, { backgroundColor: fond }]}>
+      {role ? <IconeRole role={role} couleur={couleur} taille={13} /> : null}
+      <Text style={[styles.pastilleTexte, { color: couleur }]}>{texte}</Text>
+    </View>
+  );
+}
+
+function Rond({ texte, onPress, libelle, children }) {
+  return (
+    <Pressable onPress={onPress} style={styles.rond} accessibilityRole="button" accessibilityLabel={libelle} hitSlop={6}>
+      {children ?? <Text style={styles.rondTexte}>{texte}</Text>}
+    </Pressable>
+  );
+}
 
 export default function Partie() {
   const { code } = useLocalSearchParams();
@@ -53,7 +97,6 @@ export default function Partie() {
   const [photosIgnorees, setPhotosIgnorees] = useState([]);
   const [position, setPosition] = useState(null);
   const [autres, setAutres] = useState([]);
-  const [derniereSynchro, setDerniereSynchro] = useState(null);
   const [maintenant, setMaintenant] = useState(Date.now());
   const [erreur, setErreur] = useState(null);
   const [message, setMessage] = useState(null);
@@ -61,10 +104,16 @@ export default function Partie() {
   const [horsZoneDepuis, setHorsZoneDepuis] = useState(null);
   const [devenuChatLe, setDevenuChatLe] = useState(null);
   const [suiviDeFond, setSuiviDeFond] = useState(null); // true, false, ou null tant qu'on ne sait pas
+  const [captureEnAttente, setCaptureEnAttente] = useState(null); // { joueur, depuis } pendant les 5 s d'annulation
+  const [panneau, setPanneau] = useState(null); // 'regles', 'menu', 'terminer', 'abandon', 'declarer'
+  const [actionEnCours, setActionEnCours] = useState(false);
+  const [poche, setPoche] = useState(false);
+  const derniereTouche = useRef(Date.now());
   const positionRef = useRef(null);
   const roleAvant = useRef(null);
   const sortieEnvoyee = useRef(false);
   const finDemandee = useRef(false);
+  const captureEnvoyee = useRef(null);
 
   const charger = useCallback(async () => {
     try {
@@ -151,7 +200,7 @@ export default function Partie() {
             ? 'photoRefusee'
             : choixCible && estChat
               ? 'cible'
-              : null;
+              : panneau;
   const photoAffichee = fenetre === 'photo' ? photoAValider : fenetre === 'photoArbitrage' ? photoAArbitrer : null;
 
   // Toutes les 20 s : j'envoie ma position, je valide les captures sans réponse,
@@ -169,7 +218,6 @@ export default function Partie() {
         }
         const liste = await lirePositions(partie.id);
         setAutres(liste.filter((p) => p.joueur_id !== moi));
-        setDerniereSynchro(Date.now());
       } catch (e) {
         setErreur(e.message);
       }
@@ -184,19 +232,27 @@ export default function Partie() {
     if (roleAvant.current === 'souris' && monRole === 'chat') {
       setDevenuChatLe(Date.now());
       setChoixCible(false);
+      setCaptureEnAttente(null);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+      jouerSon('danger');
     }
     if (monRole) roleAvant.current = monRole;
   }, [monRole]);
 
   // Une capture me concerne : vibration d'alerte
   useEffect(() => {
-    if (capturePourMoi) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+    if (capturePourMoi) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+      jouerSon('alerte');
+    }
   }, [capturePourMoi?.id]);
 
   // Une souris m'a photographié : vibration d'alerte
   useEffect(() => {
-    if (photoAValider) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+    if (photoAValider) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+      jouerSon('alerte');
+    }
   }, [photoAValider?.id]);
 
   // Le stockage des photos est privé : on demande un lien temporaire pour l'afficher
@@ -219,7 +275,10 @@ export default function Partie() {
   }, [horsZone, estChat]);
 
   useEffect(() => {
-    if (horsZoneDepuis) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {});
+    if (horsZoneDepuis) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {});
+      jouerSon('danger');
+    }
   }, [horsZoneDepuis]);
 
   // Délai écoulé hors zone : la base vérifie la position et transforme la souris en chat
@@ -259,6 +318,7 @@ export default function Partie() {
     if (partie?.statut === 'terminee') {
       arreterSuivi().catch(() => {});
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      jouerSon('succes');
       router.replace(`/fin/${partie.code}`);
     }
   }, [partie?.statut, partie?.code]);
@@ -273,6 +333,68 @@ export default function Partie() {
       setErreur(e.message);
     }
   }
+
+  // Le chat a 5 secondes pour annuler une capture avant qu'elle parte
+  useEffect(() => {
+    if (!captureEnAttente || !partie?.id) return;
+    if (maintenant - captureEnAttente.depuis < DELAI_ANNULATION_MS) return;
+    if (captureEnvoyee.current === captureEnAttente.depuis) return;
+    captureEnvoyee.current = captureEnAttente.depuis;
+    const { joueur } = captureEnAttente;
+    setCaptureEnAttente(null);
+    agir(() => signalerCapture(partie.id, joueur.joueur_id), `Capture envoyée à ${joueur.pseudo}.`);
+  }, [maintenant, captureEnAttente, partie?.id]);
+
+  async function terminer() {
+    setActionEnCours(true);
+    try {
+      await terminerPartie(partie.id);
+      setPanneau(null);
+      await charger();
+    } catch (e) {
+      setErreur(e.message);
+      setPanneau(null);
+    } finally {
+      setActionEnCours(false);
+    }
+  }
+
+  async function abandonner() {
+    setActionEnCours(true);
+    try {
+      await quitterPartie(partie.id);
+      await arreterSuivi().catch(() => {});
+      router.replace('/');
+    } catch (e) {
+      setErreur(e.message);
+      setPanneau(null);
+    } finally {
+      setActionEnCours(false);
+    }
+  }
+
+  // Version web : sans toucher l'écran pendant 25 s, le mode poche s'active tout seul
+  // (pas pendant une fenêtre ouverte ni pendant l'annulation d'une capture)
+  useEffect(() => {
+    if (!dansNavigateur || poche || !commencee || chronoFini || fenetre || captureEnAttente) return;
+    if (maintenant - derniereTouche.current > VERROUILLAGE_AUTO_MS) setPoche(true);
+  }, [maintenant, poche, commencee, chronoFini, fenetre, captureEnAttente]);
+
+  // Les deux derniers événements de la partie, pour suivre ce qui se passe sans tout relire
+  const evenements = useMemo(() => {
+    if (!debut) return [];
+    const nom = (id) => joueurs.find((j) => j.joueur_id === id)?.pseudo ?? 'Un joueur';
+    const touches = captures.filter((c) => ['confirmee', 'validee'].includes(c.statut));
+    const liste = touches.map((c) => ({ quand: c.cree_le, texte: `${nom(c.cible_id)} a été touché par ${nom(c.chat_id)}` }));
+    for (const j of joueurs) {
+      const devenu = j.devenu_chat_le ? new Date(j.devenu_chat_le).getTime() : null;
+      if (j.role === 'chat' && devenu && devenu > debut + 1000 && !touches.some((c) => c.cible_id === j.joueur_id)) {
+        liste.push({ quand: j.devenu_chat_le, texte: `${j.pseudo} est devenu chat` });
+      }
+    }
+    for (const ph of photos) if (ph.statut === 'validee') liste.push({ quand: ph.cree_le, texte: `${nom(ph.souris_id)} a photographié ${nom(ph.chat_id)}` });
+    return liste.sort((a, b) => new Date(b.quand) - new Date(a.quand)).slice(0, 2);
+  }, [captures, joueurs, photos, debut]);
 
   // ---------- Affichage ----------
 
@@ -327,7 +449,8 @@ export default function Partie() {
     );
   }
 
-  const prochaineMaj = derniereSynchro ? (derniereSynchro + INTERVALLE_MS - maintenant) / 1000 : null;
+  const derniereMajSouris = autres.length ? autres.reduce((m, p) => (p.maj_le > m ? p.maj_le : m), autres[0].maj_le) : null;
+  const procheDuBord = !estChat && distanceCentre !== null && !horsZone && partie.rayon_m - distanceCentre <= ALERTE_BORD_M;
 
   // Souris triées de la plus proche à la plus éloignée, d'après leur dernière position connue
   const ciblesPossibles = souris
@@ -337,31 +460,70 @@ export default function Partie() {
     })
     .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
 
+  const alertePoche = capturePourMoi
+    ? `${pseudo(capturePourMoi.chat_id)} dit t'avoir touché`
+    : photoAValider
+      ? `${pseudo(photoAValider.souris_id)} t'a photographié`
+      : captureAArbitrer || photoAArbitrer
+        ? 'Une contestation attend ta décision'
+        : resteHorsZone !== null
+          ? `Hors zone : reviens dans le cercle (${chrono(resteHorsZone)})`
+          : null;
+
   return (
     <Ecran sombre defilant={false}>
+      <View style={styles.racine} onTouchStart={() => (derniereTouche.current = Date.now())}>
+      {/* En-tête : chrono et rôle en gros, règles et menu à portée de doigt */}
       <View style={styles.entete}>
-        <Titre taille={28} couleur={couleurs.craie}>
+        <Titre taille={36} couleur={couleurs.craie} style={{ flex: 1 }}>
           {chrono((fin - maintenant) / 1000)}
         </Titre>
-        <Etiquette
+        <Pastille
           texte={estChat ? 'Chat' : 'Souris'}
           fond={estChat ? couleurs.corail : couleurs.vert}
           couleur={estChat ? couleurs.corailClair : couleurs.vertClair}
+          role={estChat ? 'chat' : 'souris'}
         />
-        <Etiquette
-          texte={estChat ? `${souris.length} souris` : `${moiJoueur.photos_validees} photo${moiJoueur.photos_validees > 1 ? 's' : ''}`}
+        <Pastille
+          texte={String(estChat ? souris.length : chats.length)}
           fond={couleurs.nuit}
           couleur={couleurs.craie}
+          role={estChat ? 'souris' : 'chat'}
         />
+        <Rond libelle="Mode poche" onPress={() => setPoche(true)}>
+          <IconeCadenas />
+        </Rond>
+        <Rond texte="?" libelle="Règles du jeu" onPress={() => setPanneau('regles')} />
+        <Rond texte="•••" libelle={estHote ? 'Menu de l’hôte' : 'Menu'} onPress={() => setPanneau('menu')} />
       </View>
 
-      <View style={styles.carte}>
-        <CarteJeu
-          centre={centre}
-          rayon={partie.rayon_m}
-          points={estChat ? autres.map((p) => ({ id: p.joueur_id, nom: pseudo(p.joueur_id), latitude: p.latitude, longitude: p.longitude })) : []}
-        />
+      {/* Fil d'événements */}
+      <View style={styles.fil} accessibilityLiveRegion="polite">
+        {evenements.length > 0 ? (
+          evenements.map((e, i) => (
+            <View key={`${e.quand}-${i}`} style={[styles.evenement, i > 0 && { opacity: 0.6 }]}>
+              <View style={[styles.puce, { backgroundColor: estChat ? couleurs.corail : couleurs.vertVif }]} />
+              <Petit couleur={couleurs.craie} style={{ flex: 1 }}>
+                {e.texte}, {ilYa(e.quand, maintenant)}
+              </Petit>
+            </View>
+          ))
+        ) : (
+          <Petit couleur={couleurs.craie}>
+            {estChat
+              ? `${souris.length} souris en jeu. Bonne chasse !`
+              : `${souris.length} souris en jeu · ${moiJoueur.photos_validees} photo${moiJoueur.photos_validees > 1 ? 's' : ''} validée${moiJoueur.photos_validees > 1 ? 's' : ''}`}
+          </Petit>
+        )}
       </View>
+
+      {procheDuBord && (
+        <View style={styles.alerte}>
+          <Texte gras couleur={couleurs.encre}>
+            Bord de zone à {Math.max(0, Math.round(partie.rayon_m - distanceCentre))} m
+          </Texte>
+        </View>
+      )}
 
       {/* Écran 12 : compte à rebours hors zone */}
       {resteHorsZone !== null && (
@@ -378,6 +540,35 @@ export default function Partie() {
         </Carte>
       )}
 
+      <View style={styles.carte}>
+        <CarteJeu
+          centre={centre}
+          rayon={partie.rayon_m}
+          points={estChat ? autres.map((p) => ({ id: p.joueur_id, nom: pseudo(p.joueur_id), latitude: p.latitude, longitude: p.longitude })) : []}
+        />
+      </View>
+
+      {/* Légende de la carte */}
+      <View style={styles.legende}>
+        {estChat && (
+          <View style={styles.cle}>
+            <View style={[styles.point, { backgroundColor: couleurs.vertVif }]} />
+            <Petit couleur={couleurs.grisClair}>Souris</Petit>
+          </View>
+        )}
+        <View style={styles.cle}>
+          <View style={[styles.point, { backgroundColor: '#378ADD' }]} />
+          <Petit couleur={couleurs.grisClair}>Toi</Petit>
+        </View>
+        <Petit couleur={couleurs.grisClair} style={{ flex: 1, textAlign: 'right' }}>
+          {estChat
+            ? derniereMajSouris
+              ? `Positions : ${ilYa(derniereMajSouris, maintenant)}`
+              : 'Positions : en attente'
+            : 'Les chats sont invisibles'}
+        </Petit>
+      </View>
+
       {mesSignalements.map((c) => (
         <Carte key={c.id} sombre>
           <Petit couleur={couleurs.grisClair}>
@@ -388,13 +579,6 @@ export default function Partie() {
         </Carte>
       ))}
 
-      <Petit couleur={couleurs.grisClair} centre>
-        {estChat
-          ? `Position exacte des souris, prochaine mise à jour dans ${prochaineMaj !== null ? chrono(prochaineMaj) : '…'}`
-          : distanceCentre !== null
-            ? `Les chats sont invisibles. Bord de zone à ${Math.max(0, Math.round(partie.rayon_m - distanceCentre))} m.`
-            : 'Recherche de ta position…'}
-      </Petit>
       {suiviDeFond === false && (
         <Petit couleur={couleurs.ambre} centre>
           {suiviDeFondDisponible
@@ -412,23 +596,42 @@ export default function Partie() {
           {erreur}
         </Petit>
       )}
+
+      {/* Annulation possible pendant 5 secondes après « Toucher » */}
+      {captureEnAttente && (
+        <View style={styles.annulation} accessibilityLiveRegion="assertive">
+          <Texte gras couleur={couleurs.encre} style={{ flex: 1 }}>
+            Capture de {captureEnAttente.joueur.pseudo}
+          </Texte>
+          <Pressable onPress={() => setCaptureEnAttente(null)} style={styles.annuler} accessibilityRole="button">
+            <Text style={styles.annulerTexte}>
+              Annuler ({Math.max(0, Math.ceil((DELAI_ANNULATION_MS - (maintenant - captureEnAttente.depuis)) / 1000))} s)
+            </Text>
+          </Pressable>
+        </View>
+      )}
+
+      {/* Action principale dans la zone du pouce */}
       {estChat ? (
-        <Bouton titre="J'ai touché quelqu'un" onPress={() => setChoixCible(true)} />
+        <Bouton titre="Toucher une souris" onPress={() => setChoixCible(true)} desactive={Boolean(captureEnAttente)} />
       ) : (
-        <Bouton titre="Photographier un chat" variante="vert" onPress={() => router.push(`/photo/${partie.code}`)} />
+        <>
+          <Bouton titre="Photographier un chat" variante="vert" onPress={() => router.push(`/photo/${partie.code}`)} />
+          <Bouton titre="J'ai été touché" variante="contourClair" onPress={() => setPanneau('declarer')} />
+        </>
       )}
 
       {/* Choix de la souris touchée */}
       <Dialogue visible={fenetre === 'cible'}>
         <Titre taille={20}>Qui as-tu touché ?</Titre>
-        <Petit>La souris devra confirmer. Sans réponse sous {DELAI_REPONSE_S} s, la capture compte.</Petit>
+        <Petit>Tu pourras annuler pendant 5 secondes. La souris devra ensuite confirmer.</Petit>
         <ScrollView style={{ maxHeight: 320 }} contentContainerStyle={{ gap: 8 }}>
           {ciblesPossibles.map((j) => (
             <Pressable
               key={j.joueur_id}
               onPress={() => {
                 setChoixCible(false);
-                agir(() => signalerCapture(partie.id, j.joueur_id), `Capture envoyée à ${j.pseudo}.`);
+                setCaptureEnAttente({ joueur: j, depuis: Date.now() });
               }}
               style={styles.cible}
               accessibilityRole="button"
@@ -444,31 +647,89 @@ export default function Partie() {
         <Bouton titre="Annuler" variante="contour" onPress={() => setChoixCible(false)} />
       </Dialogue>
 
-      {/* Écran 10 : une souris confirme ou conteste */}
+      {/* Écran 10 : une souris confirme ou conteste, avec le temps restant */}
       <Dialogue visible={fenetre === 'capture'}>
         {capturePourMoi && (
           <>
-            <Titre taille={20} centre>
+            <Titre taille={22} centre>
               {pseudo(capturePourMoi.chat_id)} dit t'avoir touché·e
             </Titre>
             {capturePourMoi.distance_m !== null && (
-              <Petit centre>Distance au moment du signalement : {Math.round(capturePourMoi.distance_m)} m</Petit>
+              <Petit centre>
+                À {Math.round(capturePourMoi.distance_m)} m de toi, {ilYa(capturePourMoi.cree_le, maintenant)}
+              </Petit>
             )}
-            <Bouton
-              titre="Confirmer, je deviens chat"
-              onPress={() => agir(() => repondreCapture(capturePourMoi.id, true))}
-            />
+            <CompteARebours reste={resteReponse(capturePourMoi.cree_le)} total={DELAI_REPONSE_S} />
+            <Petit centre>Sans réponse, la capture est validée si vous étiez proches.</Petit>
+            <Bouton titre="Confirmer, je deviens chat" onPress={() => agir(() => repondreCapture(capturePourMoi.id, true))} />
             <Bouton
               titre="Contester"
               variante="contour"
               onPress={() => agir(() => repondreCapture(capturePourMoi.id, false), "Capture contestée, l'hôte va trancher.")}
             />
-            <Petit centre>
-              Sans réponse dans {chrono(resteReponse(capturePourMoi.cree_le))}, la
-              capture est validée.
-            </Petit>
           </>
         )}
+      </Dialogue>
+
+      {/* Règles du jeu, accessibles à tout moment */}
+      <Dialogue visible={fenetre === 'regles'}>
+        <Titre taille={22}>Règles du jeu</Titre>
+        <ScrollView style={{ maxHeight: 380 }} contentContainerStyle={{ gap: 8 }}>
+          {REGLES_JEU.map((r) => (
+            <Texte key={r}>• {r}</Texte>
+          ))}
+        </ScrollView>
+        <Bouton titre="J'ai compris" variante="contour" onPress={() => setPanneau(null)} />
+      </Dialogue>
+
+      {/* Menu : l'hôte termine la partie, les autres peuvent abandonner */}
+      <Dialogue visible={fenetre === 'menu'}>
+        <Titre taille={22}>{estHote ? 'Menu de l’hôte' : 'Menu'}</Titre>
+        {estHote ? (
+          <Bouton titre="Terminer la partie" onPress={() => setPanneau('terminer')} />
+        ) : (
+          <Bouton titre="Abandonner la partie" onPress={() => setPanneau('abandon')} />
+        )}
+        <Bouton titre="Fermer" variante="contour" onPress={() => setPanneau(null)} />
+      </Dialogue>
+
+      <Dialogue visible={fenetre === 'terminer'}>
+        <Titre taille={22}>Terminer la partie ?</Titre>
+        <Texte>
+          Les {souris.length} souris encore en jeu sont classées survivantes. Une partie de moins de 2 minutes ne rapporte pas d'XP.
+        </Texte>
+        <Bouton titre="Terminer maintenant" onPress={terminer} chargement={actionEnCours} />
+        <Bouton titre="Continuer la partie" variante="contour" onPress={() => setPanneau(null)} desactive={actionEnCours} />
+      </Dialogue>
+
+      <Dialogue visible={fenetre === 'abandon'}>
+        <Titre taille={22}>Abandonner ?</Titre>
+        <Texte>{estChat ? 'Tu quittes la partie.' : 'Tu quittes la partie et tu comptes comme touché.'}</Texte>
+        <Bouton titre="Abandonner" onPress={abandonner} chargement={actionEnCours} />
+        <Bouton titre="Continuer la partie" variante="contour" onPress={() => setPanneau(null)} desactive={actionEnCours} />
+      </Dialogue>
+
+      {/* La souris se déclare touchée */}
+      <Dialogue visible={fenetre === 'declarer'}>
+        <Titre taille={22}>Qui t'a touché ?</Titre>
+        <ScrollView style={{ maxHeight: 300 }} contentContainerStyle={{ gap: 8 }}>
+          {chats.map((j) => (
+            <Pressable
+              key={j.joueur_id}
+              onPress={() => {
+                setPanneau(null);
+                agir(() => declarerCapture(partie.id, j.joueur_id));
+              }}
+              style={styles.cible}
+              accessibilityRole="button"
+            >
+              <Texte gras style={{ flex: 1 }}>
+                {j.pseudo}
+              </Texte>
+            </Pressable>
+          ))}
+        </ScrollView>
+        <Bouton titre="Annuler" variante="contour" onPress={() => setPanneau(null)} />
       </Dialogue>
 
       {/* Écran 11 : l'hôte tranche une capture contestée */}
@@ -546,6 +807,18 @@ export default function Partie() {
           </>
         )}
       </Dialogue>
+      </View>
+
+      <ModePoche
+        visible={poche}
+        surDeverrouiller={() => {
+          derniereTouche.current = Date.now();
+          setPoche(false);
+        }}
+        chrono={chrono((fin - maintenant) / 1000)}
+        role={estChat ? 'Tu es chat' : 'Tu es souris'}
+        alerte={alertePoche}
+      />
     </Ecran>
   );
 }
@@ -555,13 +828,28 @@ const styles = StyleSheet.create({
   plein: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20, gap: 12 },
   logo: { width: 160, height: 160 },
   photo: { width: '100%', height: 260, borderRadius: 12, backgroundColor: couleurs.grisClair },
-  entete: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  carte: { flex: 1, borderRadius: 18, overflow: 'hidden', minHeight: 260 },
+  racine: { flex: 1, gap: 12 },
+  entete: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  pastille: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 999, paddingVertical: 5, paddingHorizontal: 10 },
+  pastilleTexte: { fontFamily: polices.texteGras, fontSize: 13 },
+  rond: { width: 36, height: 36, borderRadius: 18, backgroundColor: couleurs.nuit, alignItems: 'center', justifyContent: 'center' },
+  rondTexte: { fontFamily: polices.texteGras, fontSize: 14, color: couleurs.craie },
+  fil: { backgroundColor: couleurs.nuit, borderRadius: 14, paddingVertical: 10, paddingHorizontal: 14, gap: 6 },
+  evenement: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  puce: { width: 8, height: 8, borderRadius: 4 },
+  alerte: { backgroundColor: couleurs.ambre, borderRadius: 14, paddingVertical: 10, paddingHorizontal: 14 },
+  carte: { flex: 1, borderRadius: 18, overflow: 'hidden', minHeight: 240 },
+  legende: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  cle: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  point: { width: 10, height: 10, borderRadius: 5 },
+  annulation: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: couleurs.craie, borderRadius: 14, paddingVertical: 8, paddingLeft: 16, paddingRight: 8 },
+  annuler: { backgroundColor: couleurs.encre, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 12, minHeight: 44, justifyContent: 'center' },
+  annulerTexte: { fontFamily: polices.texteGras, fontSize: 14, color: couleurs.craie },
   cible: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: couleurs.craie,
+    backgroundColor: theme.craie, // dans les fenêtres, qui suivent le thème jour ou nuit
     borderRadius: 14,
     paddingVertical: 12,
     paddingHorizontal: 14,

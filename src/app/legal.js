@@ -1,8 +1,6 @@
 // Mentions légales, confidentialité, conditions d'utilisation et crédits des cartes
 import Constants from 'expo-constants';
-import { router } from 'expo-router';
 import { Linking, Pressable, StyleSheet } from 'react-native';
-import Bouton from '@/components/Bouton';
 import Carte from '@/components/Carte';
 import Ecran from '@/components/Ecran';
 import { Petit, Texte, Titre } from '@/components/Texte';
@@ -19,7 +17,6 @@ const PAGES = [
 const CREDITS = [
   ['Données cartographiques et zones', '© contributeurs OpenStreetMap, sous licence ODbL', 'https://www.openstreetmap.org/copyright'],
   ['Fond de carte', 'OpenFreeMap, © OpenMapTiles', 'https://openfreemap.org'],
-  ['Fond de carte dans Expo Go', 'Google Maps sur Android, Plans d’Apple sur iPhone', null],
   ['Polices', 'Fredoka et Inter, sous licence SIL Open Font License 1.1', 'https://openfontlicense.org'],
   ['Bibliothèques', 'Expo, React Native, React Native Web, MapLibre et Supabase, logiciels libres', `${SITE}/mentions-legales.html#credits`],
 ];
@@ -41,7 +38,7 @@ function Lien({ titre, detail, url }) {
 
 export default function Legal() {
   return (
-    <Ecran>
+    <Ecran retour>
       <Titre>À propos</Titre>
       <Petit>
         Touché {Constants.expoConfig?.version ?? ''}, projet étudiant non commercial. © 2026 Touché.
@@ -60,7 +57,6 @@ export default function Legal() {
       <Petit couleur={couleurs.gris}>
         Pour supprimer ton compte et toutes tes données : Profil, puis « Supprimer mon compte ».
       </Petit>
-      <Bouton titre="Retour" variante="contour" onPress={() => router.back()} />
     </Ecran>
   );
 }

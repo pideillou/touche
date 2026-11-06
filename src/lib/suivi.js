@@ -1,11 +1,9 @@
 // Suivi de la position écran éteint, pendant une partie seulement.
 // Une tâche de fond reçoit les positions du téléphone et envoie la dernière à Supabase
 // toutes les 20 secondes environ. Elle s'arrête à la fin de la partie.
-// Dans Expo Go, le suivi de fond n'existe pas : l'appli garde alors le suivi écran allumé.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
-import { dansExpoGo } from './environnement';
 import { supabase } from './supabase';
 
 export const TACHE_POSITION = 'touche-position-de-fond';
@@ -13,7 +11,7 @@ const CLE_SUIVI = 'touche.suivi'; // partie et joueur suivis
 const CLE_DERNIER_ENVOI = 'touche.suivi.dernier-envoi';
 const INTERVALLE_MS = 20000;
 
-export const suiviDeFondDisponible = !dansExpoGo;
+export const suiviDeFondDisponible = true; // sur le web, voir suivi.web.js
 
 // La tâche doit être déclarée dès le chargement de l'appli (import dans src/app/_layout.js)
 if (suiviDeFondDisponible) {

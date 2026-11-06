@@ -45,7 +45,7 @@ export default function Connexion() {
   }
 
   return (
-    <Ecran>
+    <Ecran retour>
       <Titre taille={28}>{creation ? 'Créer ton compte' : 'Bon retour'}</Titre>
       <Petit>
         {creation

@@ -1,6 +1,6 @@
 // Mention des sources de la carte, visible en permanence (exigée par la licence ODbL d'OpenStreetMap)
 import { Linking, Pressable, StyleSheet, Text } from 'react-native';
-import { couleurs, polices } from '@/theme';
+import { palette as couleurs, polices } from '@/theme';
 
 export default function AttributionCarte({ texte }) {
   return (

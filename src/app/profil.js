@@ -1,7 +1,8 @@
 // Écran 16 : profil, niveau et historique des parties
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Switch, View } from 'react-native';
+import ActiverNotifications from '@/components/ActiverNotifications';
 import Bouton from '@/components/Bouton';
 import Carte from '@/components/Carte';
 import Champ from '@/components/Champ';
@@ -18,6 +19,7 @@ import {
   seDeconnecter,
   supprimerCompte,
 } from '@/lib/compte';
+import { activerSons, sonsSontActifs } from '@/lib/preferences';
 import { lirePseudo, memoriserPseudo, useSession } from '@/lib/session';
 import { couleurs } from '@/theme';
 
@@ -35,6 +37,7 @@ export default function Profil() {
   const [info, setInfo] = useState(null);
   const [confirmerSuppression, setConfirmerSuppression] = useState(false);
   const [suppression, setSuppression] = useState(false);
+  const [sons, setSons] = useState(sonsSontActifs());
 
   // Recharge à chaque retour sur l'écran (par exemple après un selfie)
   const charger = useCallback(async () => {
@@ -97,7 +100,7 @@ export default function Profil() {
   const date = (iso) => new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
 
   return (
-    <Ecran>
+    <Ecran retour>
       <View style={styles.tete}>
         <Pressable
           onPress={() => (profil ? router.push('/selfie') : setErreur("Choisis d'abord ton pseudo."))}
@@ -177,9 +180,23 @@ export default function Profil() {
       {info && <Texte couleur={couleurs.vert}>{info}</Texte>}
       {erreur && <Texte couleur={couleurs.corail}>{erreur}</Texte>}
       {!invite && <Bouton titre="Se déconnecter" variante="contour" onPress={deconnexion} />}
+      <ActiverNotifications />
+      <Carte style={styles.reglage}>
+        <View style={{ flex: 1 }}>
+          <Texte gras>Sons pendant la partie</Texte>
+          <Petit>Capture, photo et sortie de zone, sans regarder l'écran.</Petit>
+        </View>
+        <Switch
+          value={sons}
+          onValueChange={(v) => {
+            setSons(v);
+            activerSons(v);
+          }}
+          accessibilityLabel="Sons pendant la partie"
+        />
+      </Carte>
       <Bouton titre="Mentions légales et crédits" variante="contour" onPress={() => router.push('/legal')} />
       <Bouton titre="Supprimer mon compte" variante="contour" onPress={() => setConfirmerSuppression(true)} />
-      <Bouton titre="Retour" variante="contour" onPress={() => router.back()} />
 
       <Dialogue visible={confirmerSuppression}>
         <Titre taille={22}>Supprimer ton compte ?</Titre>
@@ -195,6 +212,7 @@ export default function Profil() {
 }
 
 const styles = StyleSheet.create({
+  reglage: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   tete: { alignItems: 'center', gap: 6 },
   avatar: {
     width: 104,
