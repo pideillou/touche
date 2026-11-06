@@ -18,6 +18,11 @@ export const palette = {
   grisClair: '#D3D1C7',
   blanc: '#FFFFFF',
   saumon: '#F0997B',
+  // Raretés des bonus et annonces : bleu pour rare, doré pour légendaire
+  rare: '#85B7EB',
+  rareFond: '#1E3A5F',
+  or: '#FAC775',
+  orFond: '#4A3510',
 };
 
 // Le thème suit le réglage clair ou sombre du téléphone, lu au lancement de l'appli

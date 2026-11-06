@@ -1,6 +1,6 @@
 // Suivi de la position écran éteint, pendant une partie seulement.
 // Une tâche de fond reçoit les positions du téléphone et envoie la dernière à Supabase
-// toutes les 20 secondes environ. Elle s'arrête à la fin de la partie.
+// toutes les 5 secondes environ, comme au premier plan. Elle s'arrête à la fin de la partie.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
@@ -9,7 +9,7 @@ import { supabase } from './supabase';
 export const TACHE_POSITION = 'touche-position-de-fond';
 const CLE_SUIVI = 'touche.suivi'; // partie et joueur suivis
 const CLE_DERNIER_ENVOI = 'touche.suivi.dernier-envoi';
-const INTERVALLE_MS = 20000;
+const INTERVALLE_MS = 5000; // la base ne montre la position aux chats que toutes les 20 s, sauf bonus
 
 export const suiviDeFondDisponible = true; // sur le web, voir suivi.web.js
 
@@ -21,7 +21,7 @@ if (suiviDeFondDisponible) {
       const suivi = JSON.parse((await AsyncStorage.getItem(CLE_SUIVI)) ?? 'null');
       if (!suivi) return;
       const dernierEnvoi = Number((await AsyncStorage.getItem(CLE_DERNIER_ENVOI)) ?? 0);
-      if (Date.now() - dernierEnvoi < INTERVALLE_MS - 3000) return;
+      if (Date.now() - dernierEnvoi < INTERVALLE_MS - 1000) return;
       const { coords } = data.locations[data.locations.length - 1];
       const { error: erreurEnvoi } = await supabase.from('positions').upsert({
         partie_id: suivi.partieId,
@@ -52,7 +52,7 @@ export async function demarrerSuivi(partieId, joueurId) {
   if (await Location.hasStartedLocationUpdatesAsync(TACHE_POSITION)) return true;
   await Location.startLocationUpdatesAsync(TACHE_POSITION, {
     accuracy: Location.Accuracy.High,
-    timeInterval: 10000,
+    timeInterval: INTERVALLE_MS,
     distanceInterval: 5,
     deferredUpdatesInterval: INTERVALLE_MS,
     pausesUpdatesAutomatically: false,

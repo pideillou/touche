@@ -89,19 +89,68 @@ export function rectangle(centre, distance) {
 // Couleurs du cercle de jeu et des joueurs, identiques sur les deux cartes
 export const PEINTURE_ZONE_FOND = { 'fill-color': couleurs.corail, 'fill-opacity': 0.08 };
 export const PEINTURE_ZONE_BORD = { 'line-color': couleurs.corail, 'line-width': 3 };
-export const PEINTURE_JOUEURS = { 'circle-radius': 7, 'circle-color': couleurs.vertVif, 'circle-stroke-color': couleurs.craie, 'circle-stroke-width': 2 };
+// Souris en vert, chats (vus au Radar) en corail
+export const PEINTURE_JOUEURS = {
+  'circle-radius': 7,
+  'circle-color': ['match', ['get', 'genre'], 'chat', couleurs.corail, couleurs.vertVif],
+  'circle-stroke-color': couleurs.craie,
+  'circle-stroke-width': 2,
+};
+// Halo doré autour d'une souris sous Bouclier
+export const PEINTURE_HALOS = {
+  'circle-radius': 17,
+  'circle-color': couleurs.or,
+  'circle-opacity': 0.22,
+  'circle-stroke-color': couleurs.or,
+  'circle-stroke-width': 3,
+};
+export const FILTRE_HALOS = ['==', ['get', 'halo'], true];
+// Prochain cercle du rétrécissement final, en pointillés
+export const PEINTURE_PROCHAIN = { 'line-color': couleurs.craie, 'line-width': 2, 'line-dasharray': [2, 2] };
+// Balises de bonus : un point de la couleur du camp, entouré d'un halo
+export const PEINTURE_BALISES_HALO = {
+  'circle-radius': 16,
+  'circle-color': ['get', 'couleur'],
+  'circle-opacity': 0.22,
+  'circle-stroke-color': ['get', 'couleur'],
+  'circle-stroke-width': 1.5,
+};
+export const PEINTURE_BALISES = { 'circle-radius': 7, 'circle-color': ['get', 'couleur'], 'circle-stroke-color': couleurs.craie, 'circle-stroke-width': 3 };
+// Pièges : cercle saumon
+export const PEINTURE_PIEGES = {
+  'circle-radius': 11,
+  'circle-color': couleurs.saumon,
+  'circle-opacity': 0.2,
+  'circle-stroke-color': couleurs.saumon,
+  'circle-stroke-width': 2,
+};
 // Le pseudo s'affiche au-dessus du point, pour que le doigt ne le cache pas ; un seul nom si deux points se chevauchent
 export const DISPOSITION_NOMS = { 'text-field': ['get', 'nom'], 'text-font': ['Noto Sans Regular'], 'text-size': 13, 'text-anchor': 'bottom', 'text-offset': [0, -0.9] };
 export const PEINTURE_NOMS = { 'text-color': couleurs.craie, 'text-halo-color': couleurs.encre, 'text-halo-width': 2 };
 
-// Les joueurs visibles, au format GeoJSON
-export function joueursEnGeoJson(points) {
+export const VIDE = { type: 'FeatureCollection', features: [] };
+
+// Une liste de points au format GeoJSON, avec leurs propriétés d'affichage
+function enGeoJson(liste, proprietes) {
   return {
     type: 'FeatureCollection',
-    features: points.map((p) => ({
+    features: liste.map((p) => ({
       type: 'Feature',
-      properties: { nom: p.nom },
+      properties: proprietes(p),
       geometry: { type: 'Point', coordinates: [p.longitude, p.latitude] },
     })),
   };
 }
+
+// Les joueurs visibles : genre 'souris' ou 'chat', halo pour le Bouclier
+export const joueursEnGeoJson = (points) =>
+  enGeoJson(points, (p) => ({ nom: p.nom, genre: p.genre ?? 'souris', halo: Boolean(p.halo) }));
+
+// Les balises : la couleur dépend du camp, le nom affiche le temps restant
+export const balisesEnGeoJson = (balises) =>
+  enGeoJson(balises, (b) => ({ nom: b.nom ?? 'Balise', couleur: b.camp === 'chat' ? couleurs.corail : couleurs.vertVif }));
+
+export const piegesEnGeoJson = (pieges) => enGeoJson(pieges, () => ({}));
+
+// Le cercle de jeu et le prochain cercle du rétrécissement
+export const prochainEnGeoJson = (prochain) => (prochain ? cercle(prochain, prochain.rayon) : VIDE);

@@ -56,6 +56,8 @@ export default function Creer() {
   const [duree, setDuree] = useState(30);
   const [delai, setDelai] = useState(30);
   const [invites, setInvites] = useState(true);
+  const [bonus, setBonus] = useState(true);
+  const [retrecissement, setRetrecissement] = useState(true);
   const [options, setOptions] = useState(false);
   const [chargement, setChargement] = useState(false);
   const [erreur, setErreur] = useState(null);
@@ -98,6 +100,8 @@ export default function Creer() {
       if (r.duree) setDuree(r.duree);
       if (r.delai) setDelai(r.delai);
       if (typeof r.invites === 'boolean') setInvites(r.invites);
+      if (typeof r.bonus === 'boolean') setBonus(r.bonus);
+      if (typeof r.retrecissement === 'boolean') setRetrecissement(r.retrecissement);
     });
     listerZones()
       .then((liste) => {
@@ -116,7 +120,7 @@ export default function Creer() {
     setChargement(true);
     try {
       await memoriserPseudo(pseudo);
-      await memoriserReglagesHote({ duree, delai, invites });
+      await memoriserReglagesHote({ duree, delai, invites, bonus, retrecissement });
       const code = await creerPartie({
         zoneId,
         position: zoneId === AUTOUR ? position : null,
@@ -125,6 +129,8 @@ export default function Creer() {
         duree,
         delai,
         invites,
+        bonus,
+        retrecissement,
       });
       router.replace(`/salon/${code}`);
     } catch (e) {
@@ -220,7 +226,7 @@ export default function Creer() {
           <View style={{ flex: 1 }}>
             <Texte gras>Plus d'options</Texte>
             <Petit>
-              Rayon {rayon} m · Durée {duree} min · Délai hors zone {delai} s · {invites ? 'Invités acceptés' : 'Compte requis'}
+              Rayon {rayon} m · Durée {duree} min · Délai hors zone {delai} s · {invites ? 'Invités acceptés' : 'Compte requis'} · {bonus ? 'Bonus' : 'Sans bonus'} · {retrecissement ? 'Zone qui rétrécit' : 'Zone fixe'}
             </Petit>
           </View>
           <Texte gras couleur={couleurs.gris}>{options ? '⌃' : '⌄'}</Texte>
@@ -238,6 +244,22 @@ export default function Creer() {
             ]}
             actif={invites}
             surChoix={setInvites}
+          />
+          <Segments
+            options={[
+              { valeur: true, libelle: 'Avec bonus' },
+              { valeur: false, libelle: 'Sans bonus' },
+            ]}
+            actif={bonus}
+            surChoix={setBonus}
+          />
+          <Segments
+            options={[
+              { valeur: true, libelle: 'Zone qui rétrécit' },
+              { valeur: false, libelle: 'Zone fixe' },
+            ]}
+            actif={retrecissement}
+            surChoix={setRetrecissement}
           />
         </>
       )}

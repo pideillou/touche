@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nouveautés | Touché</title>
+  <meta name="description" content="Les nouveautés de Touché, version par version : bonus, balises et zone qui rétrécit en fin de partie.">
+  <meta name="theme-color" content="#D85A30">
+  <link rel="icon" type="image/png" href="img/icone.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600&amp;family=Inter:wght@400;600&amp;display=swap">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <a class="evitement" href="#contenu">Aller au contenu</a>
+
+  <header class="entete">
+    <div class="largeur entete__ligne">
+      <a class="marque" href="./">
+        <img src="img/icone.png" alt="" width="40" height="40">
+        <span>Touché</span>
+      </a>
+      <nav aria-label="Navigation principale">
+        <ul class="menu">
+          <li><a href="./#jeu">Le jeu</a></li>
+          <li><a href="./#installer">Installer</a></li>
+          <li><a href="./#securite">Sécurité</a></li>
+          <li><a href="nouveautes.html" aria-current="page">Nouveautés</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="contenu" class="bloc">
+    <article class="largeur legal">
+      <h1>Nouveautés</h1>
+
+      <section aria-labelledby="v120">
+        <h2 id="v120">Version 1.2 : les bonus arrivent, la zone se resserre</h2>
+        <p>Deux nouveautés en mode Contaminé. Des balises apparaissent sur la carte pendant la partie : passe dessus pour récupérer un bonus et prendre l'avantage quelques instants. Et en fin de partie, la zone rétrécit pour que tout se termine en face à face.</p>
+
+        <h3>Comment marchent les bonus</h3>
+        <ul>
+          <li>Toutes les 4 minutes, de nouvelles balises apparaissent. Les chats ne voient que les balises des chats, les souris celles des souris.</li>
+          <li>Approche-toi à moins de 15 m pour en ramasser une, elle se ramasse toute seule. Si personne ne la prend, elle disparaît au bout de 3 minutes.</li>
+          <li>Tu ne gardes qu'un bonus à la fois. Il t'attend en bas à gauche de l'écran : utilise-le quand tu veux.</li>
+          <li>Un chat qui n'a touché personne depuis 6 minutes reçoit un Flair offert.</li>
+          <li>Les bonus s'arrêtent dans les 2 dernières minutes : la fin se joue à la course.</li>
+          <li>Les photos ne donnent pas de bonus.</li>
+        </ul>
+        <p>Sur 10 balises, environ 5 donnent un bonus commun, 3 un rare et 2 un légendaire.</p>
+
+        <h3>Les bonus des chats</h3>
+        <ul>
+          <li><strong>Flair</strong> (commun) : les souris se mettent à jour toutes les 5 secondes au lieu de 20, pendant 1 minute.</li>
+          <li><strong>Sonar</strong> (commun) : une flèche t'indique la souris la plus proche et sa distance approximative.</li>
+          <li><strong>Pistage</strong> (rare) : tu suis une souris en direct pendant 45 secondes, même sous Cape. Elle est prévenue.</li>
+          <li><strong>Piège</strong> (rare) : tu poses un piège invisible. La souris qui marche dedans apparaît en direct pour tous les chats.</li>
+          <li><strong>Rétrécissement</strong> (légendaire) : la zone rétrécit pendant 3 minutes. Tout le monde est prévenu.</li>
+          <li><strong>Rafle</strong> (légendaire) : toutes les souris visibles en direct pendant 20 secondes, après 5 secondes de préavis.</li>
+        </ul>
+
+        <h3>Les bonus des souris</h3>
+        <ul>
+          <li><strong>Alarme</strong> (commun) : ton téléphone vibre dès qu'un chat approche à moins de 100 m, avec sa direction.</li>
+          <li><strong>Leurre</strong> (commun) : ton point reste figé sur la carte des chats pendant que tu pars ailleurs.</li>
+          <li><strong>Cape</strong> (rare) : tu disparais de la carte des chats pendant 45 secondes.</li>
+          <li><strong>Radar</strong> (rare) : tu vois tous les chats et leurs pièges pendant 30 secondes.</li>
+          <li><strong>Bouclier</strong> (légendaire) : intouchable pendant 30 secondes. Tout le monde le sait, alors choisis bien ton moment.</li>
+          <li><strong>Brouillard</strong> (légendaire) : les chats voient toutes les souris figées à leur dernière position pendant 90 secondes. Tout le monde est prévenu.</li>
+        </ul>
+
+        <h3>La zone qui rétrécit</h3>
+        <ul>
+          <li>Elle se déclenche quand il ne reste plus que 3 souris, ou dans les 5 dernières minutes.</li>
+          <li>Toutes les 90 secondes, le cercle perd 20 % de son rayon. Le nouveau centre est tiré au hasard, toujours à l'intérieur de l'ancien cercle.</li>
+          <li>Le prochain cercle s'affiche en pointillés 30 secondes avant, avec un compte à rebours et une vibration.</li>
+          <li>Le cercle ne descend jamais sous 160 m de diamètre, et un peu plus sur les grandes zones.</li>
+          <li>Une souris restée dehors après le délai hors zone devient chat, comme d'habitude.</li>
+        </ul>
+
+        <h3>Pour l'hôte</h3>
+        <p>Deux nouvelles options dans « Plus d'options » à la création d'une partie : avec ou sans bonus, zone qui rétrécit ou zone fixe. Les deux sont activées par défaut.</p>
+
+        <h3>Mettre à jour</h3>
+        <ul>
+          <li><strong>Android</strong> : <a href="./#android">télécharge la version 1.2.0</a> et installe-la par-dessus l'ancienne.</li>
+          <li><strong>iPhone</strong> : rien à faire, la version web se met à jour toute seule. Ferme et rouvre Touché si tu ne vois pas les balises.</li>
+        </ul>
+        <p>Tout le monde doit avoir la nouvelle version : avec l'ancienne, un chat ne voit plus les souris.</p>
+      </section>
+    </article>
+  </main>
+
+  <footer class="pied">
+    <div class="largeur">
+      <p>© 2026 Touché, projet étudiant non commercial. Cartes : données © <a href="https://www.openstreetmap.org/copyright">contributeurs OpenStreetMap</a>, fond <a href="https://openfreemap.org">OpenFreeMap</a> © <a href="https://www.openmaptiles.org/">OpenMapTiles</a>.</p>
+      <ul class="liens-legaux">
+        <li><a href="mentions-legales.html">Mentions légales</a></li>
+        <li><a href="confidentialite.html">Confidentialité</a></li>
+        <li><a href="conditions.html">Conditions d'utilisation</a></li>
+      </ul>
+    </div>
+  </footer>
+</body>
+</html>

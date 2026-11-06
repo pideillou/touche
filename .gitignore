@@ -15,3 +15,6 @@ supabase/
 
 # Export web temporaire (la version publiée est copiée dans docs/app)
 /dist-web/
+
+documentation/
+/brouillons/

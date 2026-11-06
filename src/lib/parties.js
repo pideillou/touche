@@ -17,7 +17,7 @@ export async function listerZones() {
 }
 
 // Soit une zone de la liste (zoneId), soit une zone centrée sur l'hôte (position)
-export const creerPartie = ({ zoneId, position, pseudo, rayon, duree, delai, invites }) =>
+export const creerPartie = ({ zoneId, position, pseudo, rayon, duree, delai, invites, bonus = true, retrecissement = true }) =>
   action('creer_partie', {
     p_zone: position ? null : zoneId,
     p_pseudo: pseudo,
@@ -25,6 +25,8 @@ export const creerPartie = ({ zoneId, position, pseudo, rayon, duree, delai, inv
     p_duree: duree,
     p_delai: delai,
     p_invites: invites,
+    p_bonus: bonus,
+    p_retrecissement: retrecissement,
     ...(position ? { p_latitude: position.latitude, p_longitude: position.longitude } : {}),
   });
 
@@ -73,12 +75,15 @@ export async function envoyerPosition(partieId, joueurId, coords) {
   if (error) throw new Error(traduireErreur(error.message));
 }
 
-// Les règles de la base font le tri : un chat reçoit les souris, une souris ne reçoit que sa position
-export async function lirePositions(partieId) {
-  const { data, error } = await supabase.from('positions').select('*').eq('partie_id', partieId);
-  if (error) throw new Error(traduireErreur(error.message));
-  return data;
-}
+// Ce que je vois de la partie : souris visibles (si je suis chat), balises de mon camp, mes bonus,
+// bonus annoncés et cercle de jeu. La base applique les effets des bonus avant de répondre.
+export const etatJeu = (partieId) => action('etat_jeu', { p_partie: partieId });
+
+// Vagues de balises, Flair offert et rétrécissement final : n'importe quel téléphone peut faire avancer la partie
+export const animerPartie = (partieId) => action('animer_partie', { p_partie: partieId });
+export const ramasserBalise = (partieId, baliseId) => action('ramasser_balise', { p_partie: partieId, p_balise: baliseId });
+export const choisirBonus = (bonusId, prendre) => action('choisir_bonus', { p_bonus: bonusId, p_prendre: prendre });
+export const activerBonus = (bonusId, cibleId = null) => action('activer_bonus', { p_bonus: bonusId, p_cible: cibleId });
 
 // ---------- Captures, sortie de zone et fin de partie ----------
 

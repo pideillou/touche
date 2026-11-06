@@ -11,24 +11,30 @@ import CarteJeu from '@/components/CarteJeu';
 import CompteARebours from '@/components/CompteARebours';
 import Dialogue from '@/components/Dialogue';
 import Ecran from '@/components/Ecran';
+import { IconeBonus, PastilleRarete } from '@/components/IconeBonus';
 import IconeRole from '@/components/IconeRole';
 import ModePoche, { IconeCadenas } from '@/components/ModePoche';
 import { Petit, Texte, Titre } from '@/components/Texte';
+import { BONUS, BONUS_CHAT, BONUS_SOURIS, RARETES, REGLE_RETRECISSEMENT, REGLES_BONUS, direction } from '@/lib/bonus';
 import { chrono, distanceMetres } from '@/lib/geo';
 import {
+  activerBonus,
+  animerPartie,
   arbitrerCapture,
   arbitrerPhoto,
   chargerPartie,
+  choisirBonus,
   contesterPhoto,
   declarerCapture,
   ecouterPartie,
   envoyerPosition,
+  etatJeu,
   expirerCaptures,
   lienPhoto,
-  lirePositions,
   listerCaptures,
   listerPhotos,
   quitterPartie,
+  ramasserBalise,
   repondreCapture,
   signalerCapture,
   sortieDeZone,
@@ -42,7 +48,10 @@ import { jouerSon } from '@/lib/sons';
 import { arreterSuivi, demarrerSuivi, suiviDeFondDisponible } from '@/lib/suivi';
 import { couleurs as theme, palette as couleurs, polices } from '@/theme';
 
-const INTERVALLE_MS = 20000; // positions envoyées et relues toutes les 20 secondes
+const INTERVALLE_MS = 20000; // captures sans réponse, balises et fin de partie vérifiées toutes les 20 secondes
+const INTERVALLE_RAPIDE_MS = 5000; // position envoyée et carte relue toutes les 5 secondes (la base applique les 20 s)
+const FIN_BONUS_MS = 120000; // plus de bonus dans les 2 dernières minutes
+const NOUVEL_ESSAI_BALISE_MS = 6000;
 const DELAI_REPONSE_S = 30; // une capture sans réponse est validée au bout de 30 secondes
 const DUREE_TRANSFORMATION_MS = 4000; // durée de l'écran « Tu deviens chat »
 const DELAI_ANNULATION_MS = 5000; // le chat peut annuler une capture pendant 5 secondes
@@ -83,6 +92,45 @@ function Rond({ texte, onPress, libelle, children }) {
   );
 }
 
+// Emplacement du bonus en réserve, à gauche du bouton principal (maquette B-01)
+function EmplacementBonus({ bonus, inactif, onPress }) {
+  const b = bonus ? BONUS[bonus.type] : null;
+  const r = b ? RARETES[b.rarete] : null;
+  const desactive = !b || inactif;
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={desactive}
+      accessibilityRole="button"
+      accessibilityLabel={b ? `Bonus ${b.nom}, ${r.nom.toLowerCase()}. Appuie pour l’utiliser.` : 'Pas de bonus en réserve'}
+      accessibilityState={{ disabled: desactive }}
+      style={[styles.emplacement, b && { backgroundColor: r.fond, borderColor: r.texte, borderStyle: 'solid' }, b && inactif && { opacity: 0.45 }]}
+    >
+      <IconeBonus type={bonus?.type ?? 'vide'} couleur={b ? couleurs.craie : couleurs.grisClair} />
+      <Text style={[styles.emplacementTexte, { color: b ? couleurs.craie : couleurs.grisClair }]} numberOfLines={1}>
+        {b ? b.nom : 'Bonus'}
+      </Text>
+    </Pressable>
+  );
+}
+
+// En-tête des fenêtres de bonus : icône, nom et rareté
+function EnteteBonus({ type, titre }) {
+  const b = BONUS[type];
+  if (!b) return null;
+  return (
+    <View style={styles.enteteBonus}>
+      <View style={[styles.rondBonus, { backgroundColor: RARETES[b.rarete].fond, borderColor: RARETES[b.rarete].texte }]}>
+        <IconeBonus type={type} taille={26} />
+      </View>
+      <View style={{ flex: 1, gap: 4 }}>
+        <Titre taille={22}>{titre ?? b.nom}</Titre>
+        <PastilleRarete rarete={b.rarete} />
+      </View>
+    </View>
+  );
+}
+
 export default function Partie() {
   const { code } = useLocalSearchParams();
   const { session } = useSession();
@@ -108,6 +156,16 @@ export default function Partie() {
   const [panneau, setPanneau] = useState(null); // 'regles', 'menu', 'terminer', 'abandon', 'declarer'
   const [actionEnCours, setActionEnCours] = useState(false);
   const [poche, setPoche] = useState(false);
+  const [etat, setEtat] = useState(null); // ce que la base me montre : souris, balises, bonus, cercle
+  const [ecart, setEcart] = useState(0); // décalage entre l'horloge du téléphone et celle du serveur
+  const [bonusObtenu, setBonusObtenu] = useState(null); // { type, offert } pour la fenêtre « Bonus obtenu »
+  const [ongletAide, setOngletAide] = useState(null);
+  const ramassage = useRef(null);
+  const essaisBalise = useRef({});
+  const idsRamasses = useRef(new Set());
+  const idsConnus = useRef(new Set());
+  const premierEtat = useRef(false);
+  const signauxVus = useRef(new Set());
   const derniereTouche = useRef(Date.now());
   const positionRef = useRef(null);
   const roleAvant = useRef(null);
@@ -172,9 +230,27 @@ export default function Partie() {
   const fin = partie?.fin_le ? new Date(partie.fin_le).getTime() : null;
   const commencee = debut !== null && maintenant >= debut;
   const chronoFini = fin !== null && maintenant >= fin;
-  const centre = partie?.zone ? { latitude: partie.zone.latitude, longitude: partie.zone.longitude } : null;
+  // Zone de départ (cadre de la carte) et cercle de jeu actuel, qui peut rétrécir
+  const zoneDepart = partie?.zone ? { latitude: partie.zone.latitude, longitude: partie.zone.longitude, rayon: partie.rayon_m } : null;
+  const cercleJeu = etat?.cercle ?? zoneDepart;
+  const centre = cercleJeu ? { latitude: cercleJeu.latitude, longitude: cercleJeu.longitude } : null;
+  const rayonJeu = cercleJeu?.rayon ?? partie?.rayon_m;
   const distanceCentre = position && centre ? distanceMetres(position, centre) : null;
-  const horsZone = commencee && !chronoFini && distanceCentre !== null && distanceCentre > partie.rayon_m;
+  const horsZone = commencee && !chronoFini && distanceCentre !== null && distanceCentre > rayonJeu;
+
+  // Bonus : les heures viennent du serveur, corrigées du décalage d'horloge du téléphone
+  const maintenantServeur = maintenant + ecart;
+  const heureServeur = (iso) => (iso ? new Date(iso).getTime() : 0);
+  const resteS = (iso) => Math.max(0, (heureServeur(iso) - maintenantServeur) / 1000);
+  const bonusPartie = Boolean(partie?.bonus);
+  const finProche = fin !== null && fin - maintenant < FIN_BONUS_MS;
+  const mesBonus = etat?.mes_bonus ?? [];
+  const bonusReserve = mesBonus.find((b) => b.statut === 'reserve') ?? null;
+  const bonusPropose = mesBonus.find((b) => b.statut === 'propose') ?? null;
+  const mesActifs = mesBonus.filter((b) => b.statut === 'actif' && heureServeur(b.fin_le) > maintenantServeur);
+  const annonces = (etat?.annonces ?? []).filter((a) => heureServeur(a.fin_le) > maintenantServeur);
+  const balises = (etat?.balises ?? []).filter((b) => heureServeur(b.expire_le) > maintenantServeur);
+  const prochain = etat?.prochain && heureServeur(etat.prochain.le) - maintenantServeur <= 30000 ? etat.prochain : null;
   const resteHorsZone = horsZoneDepuis && partie ? partie.delai_hors_zone_s - (maintenant - horsZoneDepuis) / 1000 : null;
   const delaiHorsZoneEcoule = resteHorsZone !== null && resteHorsZone <= 0;
   const capturePourMoi = captures.find((c) => c.cible_id === moi && c.statut === 'en_attente');
@@ -198,26 +274,49 @@ export default function Partie() {
           ? 'photoArbitrage'
           : photoRefusee
             ? 'photoRefusee'
-            : choixCible && estChat
-              ? 'cible'
-              : panneau;
+            : bonusPropose
+              ? 'remplacer'
+              : bonusObtenu
+                ? 'obtenu'
+                : choixCible && estChat
+                  ? 'cible'
+                  : panneau;
   const photoAffichee = fenetre === 'photo' ? photoAValider : fenetre === 'photoArbitrage' ? photoAArbitrer : null;
 
-  // Toutes les 20 s : j'envoie ma position, je valide les captures sans réponse,
-  // je vérifie la fin de partie, et si je suis chat je relis la position des souris
+  // Ce que je vois de la partie, filtré par la base selon mon rôle et les bonus en cours
+  const lireEtat = useCallback(async () => {
+    if (!partie?.id) return;
+    const reponse = await etatJeu(partie.id);
+    setEtat(reponse);
+    setEcart(new Date(reponse.heure).getTime() - Date.now());
+    setAutres(reponse.visibles ?? []);
+  }, [partie?.id]);
+
+  // Toutes les 5 s : j'envoie ma position et je relis la carte (souris, balises, bonus, cercle)
+  useEffect(() => {
+    if (!partie?.id || !moi || !commencee || partie.statut !== 'en_cours') return undefined;
+    const rafraichir = async () => {
+      try {
+        if (positionRef.current) await envoyerPosition(partie.id, moi, positionRef.current);
+        await lireEtat();
+      } catch (e) {
+        setErreur(e.message);
+      }
+    };
+    rafraichir();
+    const minuterie = setInterval(rafraichir, INTERVALLE_RAPIDE_MS);
+    return () => clearInterval(minuterie);
+  }, [partie?.id, partie?.statut, moi, commencee, monRole, lireEtat]);
+
+  // Toutes les 20 s : captures sans réponse, vagues de balises, rétrécissement, fin de partie
   useEffect(() => {
     if (!partie?.id || !moi || !commencee || partie.statut !== 'en_cours') return undefined;
     const synchroniser = async () => {
       try {
-        if (positionRef.current) await envoyerPosition(partie.id, moi, positionRef.current);
         await expirerCaptures(partie.id);
+        await animerPartie(partie.id);
         const statut = await verifierFin(partie.id);
-        if (statut === 'terminee') {
-          charger();
-          return;
-        }
-        const liste = await lirePositions(partie.id);
-        setAutres(liste.filter((p) => p.joueur_id !== moi));
+        if (statut === 'terminee') charger();
       } catch (e) {
         setErreur(e.message);
       }
@@ -225,7 +324,73 @@ export default function Partie() {
     synchroniser();
     const minuterie = setInterval(synchroniser, INTERVALLE_MS);
     return () => clearInterval(minuterie);
-  }, [partie?.id, partie?.statut, moi, commencee, monRole, charger]);
+  }, [partie?.id, partie?.statut, moi, commencee, charger]);
+
+  // Une balise de mon camp à moins de 15 m (plus la marge du GPS) : je la ramasse, même en mode poche
+  const baliseProche = useMemo(() => {
+    if (!position || !balises.length) return null;
+    let proche = null;
+    for (const b of balises) {
+      const distance = distanceMetres(position, b);
+      if (!proche || distance < proche.distance) proche = { ...b, distance };
+    }
+    return proche;
+  }, [position, balises]);
+
+  useEffect(() => {
+    if (!baliseProche || ramassage.current || finProche || !partie?.id) return;
+    if (baliseProche.distance > 15 + Math.min(position?.accuracy ?? 0, 15)) return;
+    if (Date.now() - (essaisBalise.current[baliseProche.id] ?? 0) < NOUVEL_ESSAI_BALISE_MS) return;
+    essaisBalise.current[baliseProche.id] = Date.now();
+    ramassage.current = baliseProche.id;
+    (async () => {
+      try {
+        if (positionRef.current) await envoyerPosition(partie.id, moi, positionRef.current);
+        const resultat = await ramasserBalise(partie.id, baliseProche.id);
+        idsRamasses.current.add(resultat.id);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+        jouerSon('succes');
+        if (resultat.statut === 'reserve') setBonusObtenu({ type: resultat.type });
+        await lireEtat();
+      } catch {
+        // Le serveur juge la balise trop loin (GPS imprécis) ou déjà prise : on réessaiera
+      } finally {
+        ramassage.current = null;
+      }
+    })();
+  }, [baliseProche, finProche, partie?.id, moi, position?.accuracy, lireEtat]);
+
+  // Un Flair offert (chat sans capture depuis 6 min) s'annonce comme un bonus ramassé
+  useEffect(() => {
+    if (!etat) return;
+    for (const b of etat.mes_bonus ?? []) {
+      if (b.statut !== 'reserve' || idsConnus.current.has(b.id)) continue;
+      idsConnus.current.add(b.id);
+      if (premierEtat.current && !idsRamasses.current.has(b.id) && b.type === 'flair') {
+        setBonusObtenu({ type: 'flair', offert: true });
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      }
+    }
+    premierEtat.current = true;
+  }, [etat]);
+
+  // Une vibration pour chaque nouvel événement de bonus : pistage, piège, annonce, rétrécissement, alarme
+  useEffect(() => {
+    if (!etat) return;
+    const signaux = [];
+    if (etat.piste_jusqua) signaux.push(`piste:${etat.piste_jusqua}`);
+    if (etat.revele_jusqua) signaux.push(`revele:${etat.revele_jusqua}`);
+    for (const a of etat.annonces ?? []) if (a.joueur_id !== moi) signaux.push(`annonce:${a.id}`);
+    if (etat.prochain) signaux.push(`prochain:${etat.prochain.le}`);
+    for (const b of etat.mes_bonus ?? []) if (b.declenche_le) signaux.push(`piege:${b.id}`);
+    if (etat.alarme?.length) signaux.push(`alarme:${Math.floor(Date.now() / 10000)}`);
+    const nouveaux = signaux.filter((cle) => !signauxVus.current.has(cle));
+    nouveaux.forEach((cle) => signauxVus.current.add(cle));
+    if (nouveaux.length) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+      jouerSon('alerte');
+    }
+  }, [etat, moi]);
 
   // Une souris qui devient chat voit l'écran 22 et le téléphone vibre
   useEffect(() => {
@@ -345,6 +510,36 @@ export default function Partie() {
     agir(() => signalerCapture(partie.id, joueur.joueur_id), `Capture envoyée à ${joueur.pseudo}.`);
   }, [maintenant, captureEnAttente, partie?.id]);
 
+  async function utiliserBonus(cible = null) {
+    if (!bonusReserve) return;
+    setActionEnCours(true);
+    setErreur(null);
+    try {
+      await activerBonus(bonusReserve.id, cible);
+      setPanneau(null);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+      await lireEtat();
+    } catch (e) {
+      setErreur(e.message);
+      setPanneau(null);
+    } finally {
+      setActionEnCours(false);
+    }
+  }
+
+  async function repondreProposition(prendre) {
+    if (!bonusPropose) return;
+    setActionEnCours(true);
+    try {
+      await choisirBonus(bonusPropose.id, prendre);
+      await lireEtat();
+    } catch (e) {
+      setErreur(e.message);
+    } finally {
+      setActionEnCours(false);
+    }
+  }
+
   async function terminer() {
     setActionEnCours(true);
     try {
@@ -450,7 +645,7 @@ export default function Partie() {
   }
 
   const derniereMajSouris = autres.length ? autres.reduce((m, p) => (p.maj_le > m ? p.maj_le : m), autres[0].maj_le) : null;
-  const procheDuBord = !estChat && distanceCentre !== null && !horsZone && partie.rayon_m - distanceCentre <= ALERTE_BORD_M;
+  const procheDuBord = !estChat && distanceCentre !== null && !horsZone && rayonJeu - distanceCentre <= ALERTE_BORD_M;
 
   // Souris triées de la plus proche à la plus éloignée, d'après leur dernière position connue
   const ciblesPossibles = souris
@@ -468,7 +663,82 @@ export default function Partie() {
         ? 'Une contestation attend ta décision'
         : resteHorsZone !== null
           ? `Hors zone : reviens dans le cercle (${chrono(resteHorsZone)})`
-          : null;
+          : etat?.piste_jusqua && resteS(etat.piste_jusqua) > 0
+            ? 'Un chat te piste en direct'
+            : prochain
+              ? `La zone rétrécit dans ${chrono(resteS(prochain.le))}`
+              : null;
+
+  // Bandeaux des bonus en cours, du plus urgent au moins urgent (3 au plus)
+  const bandeaux = [];
+  if (prochain) {
+    bandeaux.push({ cle: 'prochain', ton: 'corail', texte: `La zone rétrécit dans ${chrono(resteS(prochain.le))} : rejoins le cercle en pointillés` });
+  }
+  if (etat?.revele_jusqua && resteS(etat.revele_jusqua) > 0) {
+    bandeaux.push({ cle: 'revele', ton: 'corail', texte: `Piège ! Les chats te voient en direct (${chrono(resteS(etat.revele_jusqua))})` });
+  }
+  if (etat?.piste_jusqua && resteS(etat.piste_jusqua) > 0) {
+    bandeaux.push({ cle: 'piste', ton: 'corail', texte: `Un chat te piste en direct (${chrono(resteS(etat.piste_jusqua))})` });
+  }
+  for (const a of annonces) {
+    const avant = heureServeur(a.actif_le) > maintenantServeur;
+    const reste = Math.ceil(resteS(a.fin_le));
+    const nom = a.joueur_id === moi ? null : pseudo(a.joueur_id);
+    if (a.type === 'rafle') {
+      bandeaux.push({
+        cle: a.id,
+        ton: 'corail',
+        texte: avant
+          ? estChat
+            ? `Rafle dans ${Math.ceil(resteS(a.actif_le))} s`
+            : `Rafle dans ${Math.ceil(resteS(a.actif_le))} s : les chats te verront 20 s`
+          : estChat
+            ? `Rafle : toutes les souris en direct (${reste} s)`
+            : `Rafle : les chats te voient en direct (${reste} s)`,
+      });
+    } else if (a.type === 'bouclier') {
+      bandeaux.push({ cle: a.id, ton: 'or', texte: nom ? `Bouclier : ${nom} est intouchable encore ${reste} s` : `Bouclier actif : intouchable encore ${reste} s` });
+    } else if (a.type === 'retrecissement') {
+      bandeaux.push({ cle: a.id, ton: 'corail', texte: `Rétrécissement : zone réduite pendant ${chrono(reste)}` });
+    } else if (a.type === 'brouillard') {
+      bandeaux.push({ cle: a.id, ton: 'or', texte: estChat ? `Brouillard : les souris sont figées (${chrono(reste)})` : `Brouillard : les chats te voient figé (${chrono(reste)})` });
+    }
+  }
+  for (const b of mesActifs) {
+    const reste = chrono(resteS(b.fin_le));
+    if (b.type === 'flair') bandeaux.push({ cle: b.id, ton: 'bleu', texte: `Flair : souris mises à jour toutes les 5 s (${reste})` });
+    if (b.type === 'sonar') {
+      const d = etat?.sonar ? direction(etat.sonar.cap) : null;
+      bandeaux.push({ cle: b.id, ton: 'bleu', texte: d ? `Sonar ${d.fleche} souris la plus proche à ${etat.sonar.tranche}, vers ${d.texte}` : 'Sonar : aucune souris repérée' });
+    }
+    if (b.type === 'pistage') bandeaux.push({ cle: b.id, ton: 'bleu', texte: `Pistage de ${pseudo(b.cible_id)} en direct (${reste})` });
+    if (b.type === 'piege') {
+      const recent = b.declenche_le && maintenantServeur - heureServeur(b.declenche_le) < 30000;
+      bandeaux.push({ cle: b.id, ton: recent ? 'corail' : 'bleu', texte: recent ? 'Une souris est tombée dans ton piège : elle est visible 30 s' : b.declenche_le ? 'Ton piège a servi' : `Piège posé (${reste})` });
+    }
+    if (b.type === 'alarme') {
+      const proche = [...(etat?.alarme ?? [])].sort((x, y) => x.distance - y.distance)[0];
+      const d = proche ? direction(proche.cap) : null;
+      bandeaux.push({ cle: b.id, ton: proche ? 'corail' : 'bleu', texte: proche ? `Alarme ${d.fleche} chat à ${proche.distance} m, vers ${d.texte}` : `Alarme active (${reste})` });
+    }
+    if (b.type === 'leurre') bandeaux.push({ cle: b.id, ton: 'bleu', texte: `Leurre : ton point est figé pour les chats (${reste})` });
+    if (b.type === 'cape') bandeaux.push({ cle: b.id, ton: 'bleu', texte: `Cape : tu es invisible (${reste})` });
+    if (b.type === 'radar') bandeaux.push({ cle: b.id, ton: 'bleu', texte: `Radar : chats et pièges en direct (${reste})` });
+  }
+  const TONS = {
+    corail: { fond: couleurs.corail, texte: couleurs.corailClair },
+    or: { fond: couleurs.orFond, texte: couleurs.or },
+    bleu: { fond: couleurs.rareFond, texte: couleurs.rare },
+  };
+
+  // Souris sous Bouclier : halo doré sur la carte des chats
+  const boucliers = new Set(annonces.filter((a) => a.type === 'bouclier' && heureServeur(a.actif_le) <= maintenantServeur).map((a) => a.joueur_id));
+  const pointsCarte = [
+    ...(estChat
+      ? autres.map((p) => ({ id: p.joueur_id, nom: pseudo(p.joueur_id), latitude: p.latitude, longitude: p.longitude, halo: boucliers.has(p.joueur_id) }))
+      : []),
+    ...(etat?.chats ?? []).map((c) => ({ id: c.joueur_id, nom: pseudo(c.joueur_id), latitude: c.latitude, longitude: c.longitude, genre: 'chat' })),
+  ];
 
   return (
     <Ecran sombre defilant={false}>
@@ -517,10 +787,18 @@ export default function Partie() {
         )}
       </View>
 
+      {bandeaux.slice(0, 3).map((b) => (
+        <View key={b.cle} style={[styles.bandeau, { backgroundColor: TONS[b.ton].fond }]} accessibilityLiveRegion="polite">
+          <Texte gras couleur={TONS[b.ton].texte}>
+            {b.texte}
+          </Texte>
+        </View>
+      ))}
+
       {procheDuBord && (
         <View style={styles.alerte}>
           <Texte gras couleur={couleurs.encre}>
-            Bord de zone à {Math.max(0, Math.round(partie.rayon_m - distanceCentre))} m
+            Bord de zone à {Math.max(0, Math.round(rayonJeu - distanceCentre))} m
           </Texte>
         </View>
       )}
@@ -529,7 +807,7 @@ export default function Partie() {
       {resteHorsZone !== null && (
         <Carte style={{ backgroundColor: couleurs.corail, alignItems: 'center' }}>
           <Texte gras couleur={couleurs.corailClair}>
-            Tu es hors zone, à {Math.round(distanceCentre - partie.rayon_m)} m du bord
+            Tu es hors zone, à {Math.round(distanceCentre - rayonJeu)} m du bord
           </Texte>
           <Titre taille={40} couleur={couleurs.craie}>
             {chrono(resteHorsZone)}
@@ -542,9 +820,13 @@ export default function Partie() {
 
       <View style={styles.carte}>
         <CarteJeu
+          cadre={zoneDepart}
           centre={centre}
-          rayon={partie.rayon_m}
-          points={estChat ? autres.map((p) => ({ id: p.joueur_id, nom: pseudo(p.joueur_id), latitude: p.latitude, longitude: p.longitude })) : []}
+          rayon={rayonJeu}
+          prochain={prochain}
+          points={pointsCarte}
+          balises={balises.map((b) => ({ ...b, camp: monRole, nom: chrono(resteS(b.expire_le)) }))}
+          pieges={etat?.pieges ?? []}
         />
       </View>
 
@@ -565,7 +847,9 @@ export default function Partie() {
             ? derniereMajSouris
               ? `Positions : ${ilYa(derniereMajSouris, maintenant)}`
               : 'Positions : en attente'
-            : 'Les chats sont invisibles'}
+            : etat?.chats
+              ? 'Radar : chats en corail'
+              : 'Les chats sont invisibles'}
         </Petit>
       </View>
 
@@ -613,13 +897,132 @@ export default function Partie() {
 
       {/* Action principale dans la zone du pouce */}
       {estChat ? (
-        <Bouton titre="Toucher une souris" onPress={() => setChoixCible(true)} desactive={Boolean(captureEnAttente)} />
+        <View style={styles.actions}>
+          {bonusPartie && (
+            <EmplacementBonus
+              bonus={bonusReserve}
+              inactif={finProche}
+              onPress={() => setPanneau(bonusReserve?.type === 'pistage' ? 'pistage' : 'activer')}
+            />
+          )}
+          <Bouton titre="Toucher une souris" onPress={() => setChoixCible(true)} desactive={Boolean(captureEnAttente)} style={{ flex: 1 }} />
+        </View>
       ) : (
         <>
-          <Bouton titre="Photographier un chat" variante="vert" onPress={() => router.push(`/photo/${partie.code}`)} />
+          <View style={styles.actions}>
+            {bonusPartie && <EmplacementBonus bonus={bonusReserve} inactif={finProche} onPress={() => setPanneau('activer')} />}
+            <Bouton titre="Photographier un chat" variante="vert" onPress={() => router.push(`/photo/${partie.code}`)} style={{ flex: 1 }} />
+          </View>
           <Bouton titre="J'ai été touché" variante="contourClair" onPress={() => setPanneau('declarer')} />
         </>
       )}
+
+      {/* Utiliser son bonus (maquette B-03 pour le Pistage) */}
+      <Dialogue visible={fenetre === 'activer'}>
+        {bonusReserve && (
+          <>
+            <EnteteBonus type={bonusReserve.type} />
+            <Texte>{BONUS[bonusReserve.type]?.effet}</Texte>
+            <Bouton titre={`Activer ${BONUS[bonusReserve.type]?.nom ?? ''}`} onPress={() => utiliserBonus()} chargement={actionEnCours} />
+            <Bouton titre="Plus tard" variante="contour" onPress={() => setPanneau(null)} desactive={actionEnCours} />
+          </>
+        )}
+      </Dialogue>
+
+      <Dialogue visible={fenetre === 'pistage'}>
+        <Titre taille={22}>Qui pister ?</Titre>
+        <Petit>Tu la verras en direct pendant 45 s, même sous Cape. Elle sera prévenue.</Petit>
+        <ScrollView style={{ maxHeight: 300 }} contentContainerStyle={{ gap: 8 }}>
+          {ciblesPossibles.map((j) => (
+            <Pressable key={j.joueur_id} onPress={() => utiliserBonus(j.joueur_id)} style={styles.cible} accessibilityRole="button" disabled={actionEnCours}>
+              <Texte gras style={{ flex: 1 }}>
+                {j.pseudo}
+              </Texte>
+              <Petit>{j.distance !== null ? `${Math.round(j.distance)} m` : 'Position inconnue'}</Petit>
+            </Pressable>
+          ))}
+        </ScrollView>
+        <Bouton titre="Annuler, garder le bonus" variante="contour" onPress={() => setPanneau(null)} />
+      </Dialogue>
+
+      {/* Bonus ramassé ou offert (maquette B-02) */}
+      <Dialogue visible={fenetre === 'obtenu'}>
+        {bonusObtenu && (
+          <>
+            <Petit centre>{bonusObtenu.offert ? 'BONUS OFFERT' : 'BONUS OBTENU'}</Petit>
+            <EnteteBonus type={bonusObtenu.type} />
+            <Texte>
+              {bonusObtenu.offert ? 'Tu n’as touché personne depuis 6 minutes. ' : ''}
+              {BONUS[bonusObtenu.type]?.effet}
+            </Texte>
+            <Petit>Il t’attend dans l’emplacement bonus, en bas à gauche. Utilise-le quand tu veux.</Petit>
+            <Bouton titre="Compris" onPress={() => setBonusObtenu(null)} />
+          </>
+        )}
+      </Dialogue>
+
+      {/* Nouveau bonus alors qu'on en porte déjà un (maquette B-07) */}
+      <Dialogue visible={fenetre === 'remplacer'}>
+        {bonusPropose && (
+          <>
+            <EnteteBonus type={bonusPropose.type} titre={`Nouveau bonus : ${BONUS[bonusPropose.type]?.nom ?? ''}`} />
+            <Texte>{BONUS[bonusPropose.type]?.effet}</Texte>
+            {bonusReserve && (
+              <View style={styles.actuel}>
+                <IconeBonus type={bonusReserve.type} couleur={theme.encre} />
+                <Texte gras style={{ flex: 1 }}>
+                  Tu portes déjà {BONUS[bonusReserve.type]?.nom}
+                </Texte>
+                <PastilleRarete rarete={BONUS[bonusReserve.type]?.rarete} />
+              </View>
+            )}
+            <Petit>Tu ne gardes qu’un bonus à la fois. Celui que tu laisses est perdu.</Petit>
+            <Bouton titre={`Prendre ${BONUS[bonusPropose.type]?.nom ?? ''}`} onPress={() => repondreProposition(true)} chargement={actionEnCours} />
+            {bonusReserve && (
+              <Bouton
+                titre={`Garder ${BONUS[bonusReserve.type]?.nom ?? ''}`}
+                variante="contour"
+                onPress={() => repondreProposition(false)}
+                desactive={actionEnCours}
+              />
+            )}
+          </>
+        )}
+      </Dialogue>
+
+      {/* Aide : la liste des bonus de chaque camp (maquette B-08) */}
+      <Dialogue visible={fenetre === 'aideBonus'}>
+        <Titre taille={22}>Les bonus</Titre>
+        <View style={styles.onglets}>
+          {['chat', 'souris'].map((camp) => {
+            const actif = (ongletAide ?? (estChat ? 'chat' : 'souris')) === camp;
+            return (
+              <Pressable
+                key={camp}
+                onPress={() => setOngletAide(camp)}
+                style={[styles.onglet, actif && { backgroundColor: theme.corail }]}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: actif }}
+              >
+                <Text style={[styles.ongletTexte, { color: actif ? couleurs.craie : theme.encre }]}>{camp === 'chat' ? 'Chat' : 'Souris'}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        <ScrollView style={{ maxHeight: 340 }} contentContainerStyle={{ gap: 10 }}>
+          {((ongletAide ?? (estChat ? 'chat' : 'souris')) === 'chat' ? BONUS_CHAT : BONUS_SOURIS).map((type) => (
+            <View key={type} style={{ gap: 3 }}>
+              <View style={styles.ligneBonus}>
+                <Texte gras>{BONUS[type].nom}</Texte>
+                <PastilleRarete rarete={BONUS[type].rarete} />
+              </View>
+              <Petit>{BONUS[type].effet}</Petit>
+            </View>
+          ))}
+        </ScrollView>
+        <Petit>Une vague de balises toutes les 4 min. Un seul bonus à la fois. Plus de bonus dans les 2 dernières minutes.</Petit>
+        <Bouton titre="Fermer" variante="contour" onPress={() => setPanneau(null)} />
+      </Dialogue>
 
       {/* Choix de la souris touchée */}
       <Dialogue visible={fenetre === 'cible'}>
@@ -675,10 +1078,11 @@ export default function Partie() {
       <Dialogue visible={fenetre === 'regles'}>
         <Titre taille={22}>Règles du jeu</Titre>
         <ScrollView style={{ maxHeight: 380 }} contentContainerStyle={{ gap: 8 }}>
-          {REGLES_JEU.map((r) => (
+          {[...REGLES_JEU, ...(bonusPartie ? REGLES_BONUS : []), ...(partie.retrecissement ? [REGLE_RETRECISSEMENT] : [])].map((r) => (
             <Texte key={r}>• {r}</Texte>
           ))}
         </ScrollView>
+        {bonusPartie && <Bouton titre="Voir les bonus" onPress={() => setPanneau('aideBonus')} />}
         <Bouton titre="J'ai compris" variante="contour" onPress={() => setPanneau(null)} />
       </Dialogue>
 
@@ -838,6 +1242,28 @@ const styles = StyleSheet.create({
   evenement: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   puce: { width: 8, height: 8, borderRadius: 4 },
   alerte: { backgroundColor: couleurs.ambre, borderRadius: 14, paddingVertical: 10, paddingHorizontal: 14 },
+  bandeau: { borderRadius: 14, paddingVertical: 10, paddingHorizontal: 14 },
+  actions: { flexDirection: 'row', alignItems: 'stretch', gap: 10 },
+  emplacement: {
+    width: 76,
+    minHeight: 52,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: couleurs.gris,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+    paddingHorizontal: 4,
+  },
+  emplacementTexte: { fontFamily: polices.texteGras, fontSize: 11 },
+  enteteBonus: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  rondBonus: { width: 56, height: 56, borderRadius: 28, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  actuel: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: theme.craie, borderRadius: 14, padding: 12 },
+  onglets: { flexDirection: 'row', gap: 4, padding: 4, borderRadius: 999, backgroundColor: theme.grisClair },
+  onglet: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 999 },
+  ongletTexte: { fontFamily: polices.texteGras, fontSize: 14 },
+  ligneBonus: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   carte: { flex: 1, borderRadius: 18, overflow: 'hidden', minHeight: 240 },
   legende: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   cle: { flexDirection: 'row', alignItems: 'center', gap: 5 },

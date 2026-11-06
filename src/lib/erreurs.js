@@ -16,6 +16,6 @@ export function traduireErreur(message) {
   const texte = String(message ?? '');
   for (const [motif, traduction] of TRADUCTIONS) if (motif.test(texte)) return traduction;
   // Les messages en français viennent de la base et sont faits pour être lus tels quels
-  if (/[éèàçù]|^(Seul|Tu |Ce |Cette |La |Le |Il |Aucune|Photo|Position|Connexion)/.test(texte)) return texte;
+  if (/[éèàçù]|^(Seul|Tu |Ta |Ce |Cette |La |Le |Il |Aucune|Photo|Position|Connexion|Impossible|Approche|Choisis|Plus |Les )/.test(texte)) return texte;
   return texte ? `Une erreur est survenue (${texte}).` : 'Une erreur est survenue.';
 }
