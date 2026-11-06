@@ -46,6 +46,15 @@ export async function seConnecter(email, motDePasse) {
   if (error) throw new Error(traduire(error.message));
 }
 
+// Supprime définitivement le compte et ses données (exigé par les stores),
+// puis ouvre une nouvelle session invitée vierge
+export async function supprimerCompte(id) {
+  await supabase.storage.from('avatars').remove([`${id}.jpg`]);
+  const { error } = await supabase.rpc('supprimer_mon_compte');
+  if (error) throw new Error(error.message);
+  await supabase.auth.signOut({ scope: 'local' });
+}
+
 export async function seDeconnecter() {
   const { error } = await supabase.auth.signOut();
   if (error) throw new Error(error.message);

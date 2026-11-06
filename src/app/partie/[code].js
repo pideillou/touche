@@ -184,19 +184,19 @@ export default function Partie() {
     if (roleAvant.current === 'souris' && monRole === 'chat') {
       setDevenuChatLe(Date.now());
       setChoixCible(false);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
     }
     if (monRole) roleAvant.current = monRole;
   }, [monRole]);
 
   // Une capture me concerne : vibration d'alerte
   useEffect(() => {
-    if (capturePourMoi) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    if (capturePourMoi) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
   }, [capturePourMoi?.id]);
 
   // Une souris m'a photographié : vibration d'alerte
   useEffect(() => {
-    if (photoAValider) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    if (photoAValider) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
   }, [photoAValider?.id]);
 
   // Le stockage des photos est privé : on demande un lien temporaire pour l'afficher
@@ -219,7 +219,7 @@ export default function Partie() {
   }, [horsZone, estChat]);
 
   useEffect(() => {
-    if (horsZoneDepuis) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    if (horsZoneDepuis) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {});
   }, [horsZoneDepuis]);
 
   // Délai écoulé hors zone : la base vérifie la position et transforme la souris en chat
@@ -258,7 +258,7 @@ export default function Partie() {
   useEffect(() => {
     if (partie?.statut === 'terminee') {
       arreterSuivi().catch(() => {});
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       router.replace(`/fin/${partie.code}`);
     }
   }, [partie?.statut, partie?.code]);
@@ -399,7 +399,7 @@ export default function Partie() {
         <Petit couleur={couleurs.ambre} centre>
           {suiviDeFondDisponible
             ? "Sans l'accès à la position « Toujours », ta position s'arrête quand l'écran s'éteint."
-            : "Dans Expo Go, l'écran reste allumé pendant la partie : ne le verrouille pas, sinon ta position s'arrête."}
+            : "Sur cette version, l'écran reste allumé pendant la partie : ne le verrouille pas et garde Touché ouvert, sinon ta position s'arrête."}
         </Petit>
       )}
       {message && (

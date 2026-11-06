@@ -5,10 +5,19 @@ import { Image, Pressable, StyleSheet, View } from 'react-native';
 import Bouton from '@/components/Bouton';
 import Carte from '@/components/Carte';
 import Champ from '@/components/Champ';
+import Dialogue from '@/components/Dialogue';
 import Ecran from '@/components/Ecran';
 import Etiquette from '@/components/Etiquette';
 import { Petit, Texte, Titre } from '@/components/Texte';
-import { chargerHistorique, chargerProfil, enregistrerPseudo, lienAvatar, niveauDepuisXp, seDeconnecter } from '@/lib/compte';
+import {
+  chargerHistorique,
+  chargerProfil,
+  enregistrerPseudo,
+  lienAvatar,
+  niveauDepuisXp,
+  seDeconnecter,
+  supprimerCompte,
+} from '@/lib/compte';
 import { lirePseudo, memoriserPseudo, useSession } from '@/lib/session';
 import { couleurs } from '@/theme';
 
@@ -24,6 +33,8 @@ export default function Profil() {
   const [historique, setHistorique] = useState([]);
   const [erreur, setErreur] = useState(null);
   const [info, setInfo] = useState(null);
+  const [confirmerSuppression, setConfirmerSuppression] = useState(false);
+  const [suppression, setSuppression] = useState(false);
 
   // Recharge à chaque retour sur l'écran (par exemple après un selfie)
   const charger = useCallback(async () => {
@@ -54,6 +65,20 @@ export default function Profil() {
       await charger();
     } catch (e) {
       setErreur(e.message);
+    }
+  }
+
+  async function supprimer() {
+    setSuppression(true);
+    try {
+      await supprimerCompte(moi);
+      setConfirmerSuppression(false);
+      router.replace('/');
+    } catch (e) {
+      setErreur(e.message);
+      setConfirmerSuppression(false);
+    } finally {
+      setSuppression(false);
     }
   }
 
@@ -152,7 +177,19 @@ export default function Profil() {
       {info && <Texte couleur={couleurs.vert}>{info}</Texte>}
       {erreur && <Texte couleur={couleurs.corail}>{erreur}</Texte>}
       {!invite && <Bouton titre="Se déconnecter" variante="contour" onPress={deconnexion} />}
+      <Bouton titre="Mentions légales et crédits" variante="contour" onPress={() => router.push('/legal')} />
+      <Bouton titre="Supprimer mon compte" variante="contour" onPress={() => setConfirmerSuppression(true)} />
       <Bouton titre="Retour" variante="contour" onPress={() => router.back()} />
+
+      <Dialogue visible={confirmerSuppression}>
+        <Titre taille={22}>Supprimer ton compte ?</Titre>
+        <Texte>
+          Ton pseudo, ton selfie, ton niveau et ton historique seront effacés pour de bon. Les parties que tu as créées
+          seront supprimées. Cette action est définitive.
+        </Texte>
+        <Bouton titre="Supprimer définitivement" onPress={supprimer} chargement={suppression} />
+        <Bouton titre="Annuler" variante="contour" onPress={() => setConfirmerSuppression(false)} desactive={suppression} />
+      </Dialogue>
     </Ecran>
   );
 }

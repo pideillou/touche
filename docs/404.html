@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Page introuvable | Touché</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" type="image/png" href="/touche/img/icone.png">
+  <link rel="stylesheet" href="/touche/style.css">
+  <script>
+    // Une adresse de l'appli rechargée directement (par exemple /touche/app/salon/KX7P) revient à l'accueil de l'appli
+    if (window.location.pathname.indexOf('/touche/app/') === 0) window.location.replace('/touche/app/');
+  </script>
+</head>
+<body>
+  <main class="bloc">
+    <div class="largeur">
+      <h1>Page introuvable</h1>
+      <p>Cette page n'existe pas. <a href="/touche/">Retour à l'accueil de Touché</a>.</p>
+    </div>
+  </main>
+</body>
+</html>

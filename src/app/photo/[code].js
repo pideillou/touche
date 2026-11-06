@@ -59,8 +59,8 @@ export default function Photo() {
     setEnvoi(true);
     try {
       const image = await appareil.current.takePictureAsync({ quality: 0.4, base64: true });
-      await envoyerPhoto(partie.id, chatChoisi, image.base64);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      await envoyerPhoto(partie.id, chatChoisi, image.base64 ?? image.uri.split(',')[1]);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       router.back();
     } catch (e) {
       setErreur(e.message);

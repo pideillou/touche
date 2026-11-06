@@ -1,0 +1,30 @@
+{
+  "name": "Touché",
+  "short_name": "Touché",
+  "description": "Le jeu du chat, dans les vraies rues de ta ville.",
+  "lang": "fr",
+  "start_url": "/touche/app/",
+  "scope": "/touche/app/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F1EFE8",
+  "theme_color": "#D85A30",
+  "icons": [
+    {
+      "src": "/touche/app/icone-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/touche/app/icone-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/touche/app/icone-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

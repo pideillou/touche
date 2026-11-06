@@ -4,7 +4,8 @@
     "slug": "touche-project",
     "platforms": [
       "ios",
-      "android"
+      "android",
+      "web"
     ],
     "owner": "fr-touche-app",
     "scheme": "touche",
@@ -53,6 +54,19 @@
     },
     "updates": {
       "url": "https://u.expo.dev/18c3701b-de76-4a58-b6f6-30e1ba9a3f35"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "name": "Touché",
+      "shortName": "Touché",
+      "lang": "fr",
+      "themeColor": "#D85A30",
+      "backgroundColor": "#F1EFE8",
+      "favicon": "./assets/icon.png"
+    },
+    "experiments": {
+      "baseUrl": "/touche/app"
     }
   }
 }

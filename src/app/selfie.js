@@ -23,8 +23,8 @@ export default function Selfie() {
     setEnvoi(true);
     try {
       const image = await appareil.current.takePictureAsync({ quality: 0.5, base64: true });
-      await envoyerSelfie(session.user.id, image.base64);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      await envoyerSelfie(session.user.id, image.base64 ?? image.uri.split(',')[1]);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       router.back();
     } catch (e) {
       setErreur(e.message);

@@ -75,6 +75,11 @@ export default function Accueil() {
           onPress={() => router.push({ pathname: '/rejoindre', params: { code: code.trim() } })}
         />
       </View>
+      <Pressable onPress={() => router.push('/legal')} accessibilityRole="link" style={styles.legal}>
+        <Petit centre couleur={couleurs.gris}>
+          Mentions légales et crédits · Cartes © contributeurs OpenStreetMap
+        </Petit>
+      </Pressable>
     </Ecran>
   );
 }
@@ -83,5 +88,6 @@ const styles = StyleSheet.create({
   ligne: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   illustration: { flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 200 },
   logo: { width: 170, height: 170 },
+  legal: { paddingVertical: 8 },
   profil: { backgroundColor: couleurs.corailClair, borderRadius: 12, paddingVertical: 6, paddingHorizontal: 12 },
 });

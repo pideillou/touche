@@ -13,6 +13,7 @@
   function brancher(idLien, idAbsent, adresse) {
     var lien = document.getElementById(idLien);
     var absent = document.getElementById(idAbsent);
+    if (!lien || !absent) return; // pages sans bouton d'installation
     if (adresse) {
       lien.href = adresse;
       lien.hidden = false;
@@ -21,7 +22,6 @@
   }
 
   brancher('lien-apk', 'apk-absent', reglages.lienApk || lienApkParDefaut());
-  brancher('lien-expo-go', 'expo-go-absent', reglages.lienExpoGo);
 
   // L'adresse n'apparaît ni dans le HTML ni en clair dans le code :
   // elle est reconstituée au clic, ce que les robots de spam ne font pas.
@@ -43,7 +43,8 @@
           var adresse = decoderContact(reglages.contactCode);
           if (!adresse) return;
           lien.textContent = adresse;
-          lien.href = 'mailto:' + adresse + '?subject=' + encodeURIComponent('Invitation Touché');
+          var sujet = zone.getAttribute('data-sujet') || 'Invitation Touché';
+          lien.href = 'mailto:' + adresse + '?subject=' + encodeURIComponent(sujet);
           lien.hidden = false;
           bouton.hidden = true;
           lien.focus();

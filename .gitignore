@@ -1,4 +1,4 @@
-node_modules/
+/node_modules/
 .expo/
 dist/
 web-build/
@@ -12,3 +12,6 @@ android/
 
 # Schéma SQL gardé en local uniquement
 supabase/
+
+# Export web temporaire (la version publiée est copiée dans docs/app)
+/dist-web/

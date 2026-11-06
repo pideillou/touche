@@ -2,9 +2,10 @@
 // Style sombre sans points d'intérêt, impossible de s'éloigner de la zone ou de dézoomer sur toute la Terre.
 // Dans l'APK, c'est CarteMapLibre.js qui prend le relais, sans clé Google.
 import { useRef } from 'react';
-import { Platform, StyleSheet } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import MapView, { Circle, Marker } from 'react-native-maps';
 import { distanceMetres } from '@/lib/geo';
+import AttributionCarte from './AttributionCarte';
 import { couleurs } from '@/theme';
 
 // Style Google Maps (Android) aux couleurs de la maquette, points d'intérêt masqués
@@ -58,34 +59,37 @@ export default function CarteExpoGo({ centre, rayon, points = [] }) {
   }
 
   return (
-    <MapView
-      ref={carte}
-      style={StyleSheet.absoluteFill}
-      initialRegion={{ ...centre, latitudeDelta: ecart, longitudeDelta: ecart }}
-      onMapReady={surPrete}
-      onRegionChangeComplete={surDeplacement}
-      // Points d'intérêt : masqués par le style sur Android, désactivés sur iOS (Plans d'Apple)
-      customMapStyle={STYLE_SOMBRE}
-      showsPointsOfInterests={false}
-      userInterfaceStyle="dark"
-      // Zoom borné : pas de vue de toute la ville ni de la Terre
-      minZoomLevel={14}
-      maxZoomLevel={19}
-      cameraZoomRange={{ minCenterCoordinateDistance: 150, maxCenterCoordinateDistance: rayon * 8, animated: true }}
-      rotateEnabled={false}
-      pitchEnabled={false}
-      showsBuildings={false}
-      showsIndoors={false}
-      showsTraffic={false}
-      showsCompass={false}
-      showsUserLocation
-      showsMyLocationButton={false}
-      toolbarEnabled={false}
-    >
-      <Circle center={centre} radius={rayon} strokeColor={couleurs.corail} strokeWidth={3} fillColor="rgba(216,90,48,0.08)" />
-      {points.map((p) => (
-        <Marker key={p.id} coordinate={{ latitude: p.latitude, longitude: p.longitude }} title={p.nom} pinColor={couleurs.vertVif} />
-      ))}
-    </MapView>
+    <View style={StyleSheet.absoluteFill}>
+      <MapView
+        ref={carte}
+        style={StyleSheet.absoluteFill}
+        initialRegion={{ ...centre, latitudeDelta: ecart, longitudeDelta: ecart }}
+        onMapReady={surPrete}
+        onRegionChangeComplete={surDeplacement}
+        // Points d'intérêt : masqués par le style sur Android, désactivés sur iOS (Plans d'Apple)
+        customMapStyle={STYLE_SOMBRE}
+        showsPointsOfInterests={false}
+        userInterfaceStyle="dark"
+        // Zoom borné : pas de vue de toute la ville ni de la Terre
+        minZoomLevel={14}
+        maxZoomLevel={19}
+        cameraZoomRange={{ minCenterCoordinateDistance: 150, maxCenterCoordinateDistance: rayon * 8, animated: true }}
+        rotateEnabled={false}
+        pitchEnabled={false}
+        showsBuildings={false}
+        showsIndoors={false}
+        showsTraffic={false}
+        showsCompass={false}
+        showsUserLocation
+        showsMyLocationButton={false}
+        toolbarEnabled={false}
+      >
+        <Circle center={centre} radius={rayon} strokeColor={couleurs.corail} strokeWidth={3} fillColor="rgba(216,90,48,0.08)" />
+        {points.map((p) => (
+          <Marker key={p.id} coordinate={{ latitude: p.latitude, longitude: p.longitude }} title={p.nom} pinColor={couleurs.vertVif} />
+        ))}
+      </MapView>
+      <AttributionCarte texte="Zones © contributeurs OpenStreetMap" />
+    </View>
   );
 }

@@ -8,20 +8,23 @@ async function action(nom, parametres) {
   return data;
 }
 
-export async function listerZones(ville = 'Limoges') {
-  const { data, error } = await supabase.from('zones').select('*').eq('ville', ville).order('ordre');
+// Zones prédéfinies de toutes les villes (les zones « autour de l'hôte » sont exclues)
+export async function listerZones() {
+  const { data, error } = await supabase.from('zones').select('*').eq('perso', false).order('ville').order('ordre');
   if (error) throw new Error(error.message);
   return data;
 }
 
-export const creerPartie = ({ zoneId, pseudo, rayon, duree, delai, invites }) =>
+// Soit une zone de la liste (zoneId), soit une zone centrée sur l'hôte (position)
+export const creerPartie = ({ zoneId, position, pseudo, rayon, duree, delai, invites }) =>
   action('creer_partie', {
-    p_zone: zoneId,
+    p_zone: position ? null : zoneId,
     p_pseudo: pseudo,
     p_rayon: rayon,
     p_duree: duree,
     p_delai: delai,
     p_invites: invites,
+    ...(position ? { p_latitude: position.latitude, p_longitude: position.longitude } : {}),
   });
 
 export const rejoindrePartie = (code, pseudo) => action('rejoindre_partie', { p_code: code, p_pseudo: pseudo });
@@ -91,7 +94,8 @@ export const verifierFin = (partieId) => action('verifier_fin', { p_partie: part
 
 // L'appareil photo donne l'image en base64, le stockage attend des octets
 export function base64VersOctets(base64) {
-  const binaire = atob(base64);
+  // Sur le web, l'appareil photo peut renvoyer « data:image/jpeg;base64,... »
+  const binaire = atob(base64.replace(/^data:[^,]*,/, ''));
   const octets = new Uint8Array(binaire.length);
   for (let i = 0; i < binaire.length; i += 1) octets[i] = binaire.charCodeAt(i);
   return octets.buffer;
@@ -122,7 +126,7 @@ export const validerPhoto = (photoId, valide) => action('valider_photo', { p_pho
 export const contesterPhoto = (photoId) => action('contester_photo', { p_photo: photoId });
 export const arbitrerPhoto = (photoId, valide) => action('arbitrer_photo', { p_photo: photoId, p_valide: valide });
 
-// En fin de partie, l'hôte efface toutes les photos (seul l'hôte en a le droit)
+// En fin de partie, les joueurs effacent toutes les photos de la partie
 export async function supprimerPhotosPartie(partieId) {
   const { data, error } = await supabase.storage.from('photos').list(partieId, { limit: 1000 });
   if (error) throw new Error(error.message);

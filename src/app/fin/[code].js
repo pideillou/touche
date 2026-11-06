@@ -27,8 +27,9 @@ export default function Fin() {
       .then((resultat) => {
         setPartie(resultat.partie);
         setJoueurs(resultat.joueurs);
-        // Les photos ne servent plus : le téléphone de l'hôte les efface du stockage
-        if (resultat.partie.hote_id === moi) return supprimerPhotosPartie(resultat.partie.id);
+        // Les photos ne servent plus : chaque téléphone tente de les effacer du stockage,
+        // pour qu'elles disparaissent même si l'hôte a fermé l'appli
+        supprimerPhotosPartie(resultat.partie.id).catch(() => {});
         return null;
       })
       .catch((e) => setErreur(e.message));
